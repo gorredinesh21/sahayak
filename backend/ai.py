@@ -11,7 +11,25 @@ Gemini runs on Vertex (gcloud ADC, project from env) via google-genai.
 import json
 import os
 import re
+import signal
 from datetime import datetime
+from contextlib import contextmanager
+
+GEMINI_TIMEOUT = int(os.environ.get("GEMINI_TIMEOUT", "45"))  # seconds per call
+
+
+@contextmanager
+def _timeout(seconds):
+    """Kill the Gemini call if it takes too long."""
+    def handler(signum, frame):
+        raise TimeoutError(f"Gemini call exceeded {seconds}s")
+    old = signal.signal(signal.SIGALRM, handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 from google import genai
 from google.genai import types
@@ -374,16 +392,17 @@ DETECTED INTENT: {intent}
 
         steps = []
         for _ in range(MAX_TURNS):
-            r = self.client.models.generate_content(
-                model=self.model,
-                contents=convo,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM,
-                    tools=[types.Tool(function_declarations=[
-                        types.FunctionDeclaration(
-                            name=t["name"], description=t["description"],
-                            parameters=t["parameters"]) for t in TOOL_SPECS])],
-                    temperature=0.2))
+            with _timeout(GEMINI_TIMEOUT):
+                r = self.client.models.generate_content(
+                    model=self.model,
+                    contents=convo,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM,
+                        tools=[types.Tool(function_declarations=[
+                            types.FunctionDeclaration(
+                                name=t["name"], description=t["description"],
+                                parameters=t["parameters"]) for t in TOOL_SPECS])],
+                        temperature=0.2))
             part = r.candidates[0].content.parts[0]
             if part.function_call:
                 fc = part.function_call

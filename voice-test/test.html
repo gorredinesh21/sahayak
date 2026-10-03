@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Live STT + TTS Test</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui;max-width:700px;margin:0 auto;padding:20px;background:#0B1220;color:#E7EEF8;min-height:100vh}
+h1{font-size:22px;margin:20px 0;color:#00BAF2}
+.card{background:#111B2E;border:1px solid #1E2B42;border-radius:16px;padding:24px;margin:16px 0}
+h2{margin:0 0 16px;font-size:16px;color:#8CA0BC;text-transform:uppercase;letter-spacing:.06em}
+#liveText{font-size:24px;padding:20px;border:2px solid #00BAF2;border-radius:12px;min-height:80px;line-height:1.5;color:#fff}
+#liveText.partial{color:#8CA0BC}
+#liveText.final{color:#00BAF2;font-weight:600}
+#status{font-size:13px;color:#5B7185;margin:8px 0;padding:8px 14px;border-radius:8px;background:#0E1726;display:inline-block}
+.listening{border-color:#00BAF338 !important;box-shadow:0 0 20px rgba(0,186,242,.15)}
+button{padding:14px 28px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;margin:4px}
+.start{background:linear-gradient(135deg,#00BAF2,#0E8FDB);color:#fff}
+.stop{background:#E5484D;color:#fff}
+.speak{background:linear-gradient(135deg,#7B4DFF,#5E8BFF);color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.orb{width:60px;height:60px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:26px;transition:all .3s}
+.orb.idle{background:#111B2E;border:2px solid #1E2B42}
+.orb.listening{background:linear-gradient(135deg,#00BAF2,#0E8FDB);animation:pulse 1.2s infinite}
+.orb.thinking{background:linear-gradient(135deg,#E8A13C,#F0B458);animation:spin 2s linear infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+input{width:100%;padding:14px;font-size:16px;border:2px solid #7B4DFF;border-radius:10px;background:#0B1220;color:#fff}
+.audio-row{display:flex;gap:12px;align-items:center;margin-top:16px}
+audio{flex:1}
+.log{font-size:11px;color:#5B7185;margin-top:12px;font-family:monospace;max-height:100px;overflow-y:auto}
+</style>
+</head>
+<body>
+<h1>🎙️ Live Speech Test</h1>
+
+<div class="card">
+  <h2>Live Speech-to-Text (Browser API — shows text as you speak)</h2>
+  <div class="orb idle" id="orb">🎙️</div>
+  <div id="status">Click "Start Listening" then speak</div>
+  <br>
+  <select id="langSel" style="padding:10px 14px;border-radius:8px;background:#0B1220;color:#fff;border:1px solid #1E2B42;font-size:14px;margin-right:8px;">
+      <option value="en-IN">English</option>
+      <option value="hi-IN">हिंदी</option>
+      <option value="ta-IN">தமிழ்</option>
+      <option value="te-IN">తెలుగు</option>
+      <option value="bn-IN">বাংলা</option>
+      <option value="mr-IN">मराठी</option>
+    </select>
+    <button class="start" id="startBtn">🎙️ Start Listening</button>
+  <button class="stop" id="stopBtn" disabled>⏹ Stop</button>
+  <div id="liveText" style="margin-top:16px">Speech appears here in real-time…</div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="card">
+  <h2>Text-to-Speech (Sarvam)</h2>
+  <input id="ttsText" value="नमस्ते, आपका भुगतान सफल रहा है" placeholder="Type to hear…">
+  <div class="audio-row">
+    <button class="speak" id="ttsBtn" style="margin-top:12px">🔊 Speak</button>
+    <audio id="audioOut" controls></audio>
+  </div>
+</div>
+
+<script>
+const liveText = document.getElementById('liveText');
+const status = document.getElementById('status');
+const orb = document.getElementById('orb');
+const log = document.getElementById('log');
+let recognition = null;
+let isListening = false;
+let finalTranscript = '';
+
+function addLog(msg) {
+  log.innerHTML = new Date().toLocaleTimeString() + ' ' + msg + '<br>' + log.innerHTML;
+}
+
+document.getElementById('langSel').onchange = (e) => {
+    window.speechLang = e.target.value;
+    addLog('Language set to: ' + e.target.value);
+  };
+  window.speechLang = 'en-IN';  // default English
+
+  document.getElementById('startBtn').onclick = () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    status.textContent = '❌ SpeechRecognition not supported. Use Chrome.';
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = window.speechLang || 'en-IN';  // respects user choice
+
+  finalTranscript = '';
+
+  recognition.onstart = () => {
+    isListening = true;
+    status.textContent = '🎙️ Listening... speak now';
+    status.style.color = '#00BAF2';
+    orb.className = 'orb listening';
+    orb.textContent = '🎙️';
+    liveText.className = 'partial';
+    liveText.classList.add('listening');
+    liveText.textContent = '';
+    addLog('STT started');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+        addLog('FINAL: ' + transcript);
+      } else {
+        interim += transcript;
+      }
+    }
+    // Show live text: final + partial
+    liveText.textContent = finalTranscript + interim;
+    liveText.className = interim ? 'partial' : 'final';
+  };
+
+  recognition.onerror = (e) => {
+    addLog('ERROR: ' + e.error);
+    status.textContent = '⚠ ' + e.error;
+    status.style.color = '#E5484D';
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    orb.className = 'orb idle';
+    orb.textContent = '🎙️';
+    liveText.classList.remove('listening');
+    if (finalTranscript) {
+      status.textContent = '✅ Final: ' + finalTranscript.trim().slice(0, 50);
+      status.style.color = '#2FA84F';
+      addLog('ENDED with final: ' + finalTranscript.trim());
+    }
+  };
+
+  recognition.start();
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+};
+
+document.getElementById('stopBtn').onclick = () => {
+  if (recognition) recognition.stop();
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+};
+
+// TTS
+document.getElementById('ttsBtn').onclick = async () => {
+  const text = document.getElementById('ttsText').value;
+  if (!text) return;
+  status.textContent = '⏳ Synthesizing...';
+  try {
+    const r = await fetch(`/api/tts?text=${encodeURIComponent(text)}&lang=hi-IN`);
+    if (r.ok) {
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = document.getElementById('audioOut');
+      audio.src = url;
+      audio.play();
+      status.textContent = '🔊 Playing';
+      status.style.color = '#7B4DFF';
+    } else {
+      status.textContent = '❌ TTS failed';
+      status.style.color = '#E5484D';
+    }
+  } catch(e) {
+    status.textContent = '❌ ' + e.message;
+  }
+};
+</script>
+</body>
+</html>

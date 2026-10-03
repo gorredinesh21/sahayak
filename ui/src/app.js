@@ -64,19 +64,34 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ================================================================ VOICE MODE
-// Real-time conversation: listen → think → speak → listen → ...
-let voiceCtx = null, voiceAnalyser = null, voiceStream = null;
+// Live conversation using Browser SpeechRecognition (streaming STT)
+// + Sarvam TTS (bulbul:v3) for AI voice output.
+// This is the ChatGPT-voice-mode architecture: browser API for input
+// because it's streaming/low-latency, Sarvam for output because
+// we need Indian language voices.
+
+let voiceRec = null;
 let voiceState = "idle";   // idle | listening | thinking | speaking
-let voiceSilenceStart = 0;
-let voiceChunk = [];
 let voiceCaseId = null;
-let voiceChunks = [];       // conversation history for display
+let voiceLang = "en-IN";   // default English
+let voiceShouldListen = false;
+let voiceTTSQueue = [];
 
 function renderVoiceOverlay() {
   const ov = document.createElement("div");
   ov.id = "voiceOverlay"; ov.className = "voice-overlay";
   ov.innerHTML = `
     <button class="voice-close" id="voiceClose">✕</button>
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      <select id="voiceLangSel" style="padding:8px 14px;border-radius:8px;
+        background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2);
+        font-size:13px;font-family:inherit">
+        <option value="en-IN">English</option>
+        <option value="hi-IN">हिंदी</option>
+        <option value="ta-IN">தமிழ்</option>
+        <option value="te-IN">తెలుగు</option>
+      </select>
+    </div>
     <div class="voice-orb" id="voiceOrb">
       <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
       <div class="core" id="voiceCore">🎙️</div>
@@ -86,27 +101,39 @@ function renderVoiceOverlay() {
       ${Array.from({length:12},(_,i)=>`<span style="animation-delay:${i*.08}s"></span>`).join("")}
     </div>
     <div class="voice-transcript" id="voiceTranscript">
-      <span style="color:#5B7185">Starting voice mode…</span>
+      <span style="color:#5B7185">Starting voice mode… speak naturally</span>
     </div>
-    <div class="voice-hint">Tap ✕ to exit · Speak naturally · Sahayak replies with voice</div>`;
+    <div class="voice-hint">Speak → pause → Sahayak responds with voice</div>`;
   document.getElementById("phone").appendChild(ov);
+
+  const sel = document.getElementById("voiceLangSel");
+  sel.value = voiceLang;
+  sel.onchange = (e) => {
+    voiceLang = e.target.value;
+    if (voiceRec) { voiceRec.lang = voiceLang; }
+  };
   return ov;
 }
 
 function setVoiceState(state, statusText) {
   voiceState = state;
-  const orb = $("#voiceOrb"); if (!orb) return;
+  const orb = document.getElementById("voiceOrb");
+  if (!orb) return;
   orb.className = "voice-orb " + state;
-  const core = $("#voiceCore");
+  const core = document.getElementById("voiceCore");
   const icon = {listening:"🎙️", thinking:"🧠", speaking:"🔊", idle:"🎙️"}[state] || "🎙️";
   if (core) core.textContent = icon;
-  if (statusText) { const st = $("#voiceStatus"); if (st) st.textContent = statusText; }
-  const wave = $("#voiceWave");
+  if (statusText) {
+    const st = document.getElementById("voiceStatus");
+    if (st) st.textContent = statusText;
+  }
+  const wave = document.getElementById("voiceWave");
   if (wave) wave.style.opacity = state === "listening" ? "1" : "0.3";
 }
 
 function appendVoiceTranscript(role, text) {
-  const el = $("#voiceTranscript"); if (!el) return;
+  const el = document.getElementById("voiceTranscript");
+  if (!el) return;
   const cls = role === "user" ? "user" : "ai";
   const prefix = role === "user" ? "You: " : "Sahayak: ";
   const span = document.createElement("span");
@@ -116,156 +143,164 @@ function appendVoiceTranscript(role, text) {
   el.scrollTop = el.scrollHeight;
 }
 
-// ---- Audio capture with silence detection (VAD) ----
-async function startListening() {
-  setVoiceState("listening", "Listening…");
-  voiceChunk = []; voiceSilenceStart = 0;
-  try {
-    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    voiceCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const src = voiceCtx.createMediaStreamSource(voiceStream);
-    voiceAnalyser = voiceCtx.createAnalyser();
-    voiceAnalyser.fftSize = 512;
-    voiceAnalyser.smoothingTimeConstant = 0.8;
-    src.connect(voiceAnalyser);
-    // also pipe into a ScriptProcessorNode to record raw PCM
-    const processor = voiceCtx.createScriptProcessor(4096, 1, 1);
-    src.connect(processor);
-    processor.connect(voiceCtx.destination);
-    processor.onaudioprocess = (e) => {
-      if (voiceState !== "listening") return;
-      const data = e.inputBuffer.getChannelData(0);
-      voiceChunk.push(new Float32Array(data));
-      // VAD: check if speaking or silent
-      const level = getAudioLevel(voiceAnalyser);
-      if (level > 0.02) {
-        voiceSilenceStart = 0;  // still speaking
-      } else if (voiceSilenceStart === 0) {
-        voiceSilenceStart = Date.now();
-      } else if (Date.now() - voiceSilenceStart > 1500 && voiceChunk.length > 3) {
-        // 1.5s of silence + enough audio → user finished speaking
-        processor.onaudioprocess = null;
-        processSpeech();
-      }
-    };
-  } catch (e) {
-    setVoiceState("idle", "Mic unavailable");
-    appendVoiceTranscript("sys", "Please allow microphone access");
-    setTimeout(() => closeVoiceMode(), 2000);
+// ---- Start listening with Browser SpeechRecognition ----
+function startListening() {
+  if (!voiceShouldListen) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    appendVoiceTranscript("sys", "Voice not supported in this browser. Use Chrome.");
+    return;
   }
+
+  // Stop any existing recognition
+  if (voiceRec) {
+    try { voiceRec.stop(); } catch(e) {}
+  }
+
+  voiceRec = new SR();
+  voiceRec.continuous = true;
+  voiceRec.interimResults = true;
+  voiceRec.lang = voiceLang;
+
+  let finalText = "";
+  let silenceTimer = null;
+
+  voiceRec.onstart = () => {
+    setVoiceState("listening", "Listening…");
+  };
+
+  voiceRec.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalText += e.results[i][0].transcript + " ";
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    // Show live text
+    const t = document.getElementById("voiceTranscript");
+    if (t && interim) {
+      t.lastElementChild?.remove(); // remove old partial
+      const span = document.createElement("span");
+      span.className = "user";
+      span.style.opacity = "0.6";
+      span.textContent = "You: " + finalText + interim;
+      t.appendChild(span);
+      t.scrollTop = t.scrollHeight;
+    }
+
+    // Reset silence timer on each result
+    if (silenceTimer) clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+      // 1.2s of silence after speech → user finished
+      if (finalText.trim().length > 1) {
+        voiceRec.stop();
+        processVoiceInput(finalText.trim());
+      }
+    }, 1200);
+  };
+
+  voiceRec.onerror = (e) => {
+    if (e.error === "no-speech") return; // normal, restart
+    if (e.error === "not-allowed") {
+      appendVoiceTranscript("sys", "Please allow microphone access");
+      voiceShouldListen = false;
+      return;
+    }
+  };
+
+  voiceRec.onend = () => {
+    // Auto-restart if we should still be listening (and not thinking/speaking)
+    if (voiceShouldListen && voiceState === "listening") {
+      setTimeout(() => startListening(), 100);
+    }
+  };
+
+  voiceRec.start();
 }
 
-function getAudioLevel(analyser) {
-  const buf = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(buf);
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i];
-  return sum / buf.length / 255;
-}
-
-// ---- Convert PCM to WAV, send to STT, get text ----
-async function processSpeech() {
+// ---- Process user speech → AI → TTS ----
+async function processVoiceInput(text) {
   setVoiceState("thinking", "Thinking…");
-  stopMic();
-  if (voiceChunk.length < 3) { startListening(); return; }
+  appendVoiceTranscript("user", text);
+
+  if (!voiceCaseId) {
+    // No case open — open one on the most recent non-success txn
+    try {
+      const list = await api("/api/txn/list?limit=5");
+      const target = list.items.find(t => t.status !== "SUCCESS") || list.items[0];
+      if (target) {
+        const o = await api("/api/saas/agent/open", { method: "POST",
+          body: JSON.stringify({ txn_id: target.txn_id }) });
+        voiceCaseId = o.case_id;
+      }
+    } catch(e) {}
+  }
+
   try {
-    const wav = pcmToWav(voiceChunk, voiceCtx.sampleRate);
-    const blob = new Blob([wav], { type: "audio/wav" });
-    const fd = new FormData();
-    fd.append("file", blob, "speech.wav");
-    fd.append("language", "hi-IN");
-    const sttResp = await fetch("/api/voice/stt", { method: "POST", body: fd });
-    if (!sttResp.ok) throw new Error("STT failed");
-    const { transcript } = await sttResp.json();
-    if (!transcript || transcript.trim().length < 2) { startListening(); return; }
-    appendVoiceTranscript("user", transcript);
-    // send to AI
-    const aiResp = await api("/api/saas/agent/message", { method: "POST",
-      body: JSON.stringify({ case_id: voiceCaseId, text: transcript }) });
-    const reply = aiResp.reply || "";
-    appendVoiceTranscript("ai", reply.slice(0, 200));
-    // TTS: split into sentences, fetch all in parallel, play sequentially
+    const r = await api("/api/saas/agent/message", { method: "POST",
+      body: JSON.stringify({ case_id: voiceCaseId, text: text }) });
+    const reply = r.reply || "I didn't catch that.";
+    appendVoiceTranscript("ai", reply.slice(0, 150));
     await speakReply(reply);
-  } catch (e) {
+  } catch(e) {
     appendVoiceTranscript("sys", "⚠ " + e.message);
   }
-  // resume listening
-  startListening();
+
+  // Resume listening
+  if (voiceShouldListen) {
+    setTimeout(() => startListening(), 300);
+  }
 }
 
-// ---- TTS: fetch each sentence's audio, play sequentially ----
+// ---- TTS: split into sentences, synthesize in parallel, play sequentially ----
 async function speakReply(text) {
   setVoiceState("speaking", "Speaking…");
-  // split into sentence chunks for streaming feel
   const sentences = text.split(/(?<=[.!?।])\s+/).filter(s => s.trim().length > 1);
+  const lang = voiceLang === "en-IN" ? "en-IN" : "hi-IN";
+
   const audioPromises = sentences.map(s =>
-    fetch("/api/voice/tts", { method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: s.trim(), language: "auto" }) })
-    .then(r => r.ok ? r.arrayBuffer() : null)
-    .catch(() => null));
+    fetch(`/api/voice/tts?text=${encodeURIComponent(s.trim())}&lang=${lang}`)
+      .then(r => r.ok ? r.arrayBuffer() : null)
+      .catch(() => null));
+
   const buffers = await Promise.all(audioPromises);
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
   for (const buf of buffers) {
-    if (!buf || voiceState === "idle") break;  // user closed or interrupted
+    if (!buf || !voiceShouldListen) break; // user closed or interrupted
     try {
       const audioBuf = await audioCtx.decodeAudioData(buf);
       const src = audioCtx.createBufferSource();
       src.buffer = audioBuf;
       src.connect(audioCtx.destination);
       await new Promise(resolve => { src.onended = resolve; src.start(); });
-    } catch (e) { /* skip bad audio chunk */ }
+    } catch(e) { /* skip bad chunk */ }
   }
-}
-
-// ---- PCM to WAV conversion ----
-function pcmToWav(chunks, sampleRate) {
-  const totalLen = chunks.reduce((a, c) => a + c.length, 0);
-  const buf = new ArrayBuffer(44 + totalLen * 2);
-  const view = new DataView(buf);
-  // WAV header
-  const ws = (off, str) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
-  ws(0, "RIFF"); view.setUint32(4, 36 + totalLen * 2, true); ws(8, "WAVE");
-  ws(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true); ws(36, "data"); view.setUint32(40, totalLen * 2, true);
-  let off = 44;
-  for (const chunk of chunks) {
-    for (let i = 0; i < chunk.length; i++, off += 2) {
-      const s = Math.max(-1, Math.min(1, chunk[i]));
-      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-  }
-  return buf;
-}
-
-function stopMic() {
-  if (voiceStream) { voiceStream.getTracks().forEach(t => t.stop()); voiceStream = null; }
-  if (voiceCtx) { voiceCtx.close(); voiceCtx = null; }
+  audioCtx.close();
 }
 
 function closeVoiceMode() {
+  voiceShouldListen = false;
   voiceState = "idle";
-  stopMic();
-  const ov = $("#voiceOverlay");
+  if (voiceRec) {
+    try { voiceRec.stop(); } catch(e) {}
+    voiceRec = null;
+  }
+  const ov = document.getElementById("voiceOverlay");
   if (ov) ov.remove();
 }
 
-// ---- Entry point: mic button opens voice mode ----
 function openVoiceMode(caseId) {
   voiceCaseId = caseId;
+  voiceShouldListen = true;
   renderVoiceOverlay();
-  const ov = $("#voiceOverlay");
+  const ov = document.getElementById("voiceOverlay");
   ov.classList.add("show");
-  $("#voiceClose").onclick = closeVoiceMode;
-  appendVoiceTranscript("sys", "Voice mode ready. Speak after the beep.");
-  // beep
-  const ac = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = ac.createOscillator(); const gain = ac.createGain();
-  osc.frequency.value = 800; gain.gain.value = 0.1;
-  osc.connect(gain); gain.connect(ac.destination);
-  osc.start(); setTimeout(() => { osc.stop(); ac.close(); startListening(); }, 300);
+  document.getElementById("voiceClose").onclick = closeVoiceMode;
+  appendVoiceTranscript("sys", "Voice mode ready. Speak naturally.");
+  startListening();
 }
 
 function toast(msg) {

@@ -357,9 +357,9 @@ async def voice_stt(audio: UploadFile = File(...), language: str = "hi-IN"):
     async with _httpx.AsyncClient(timeout=30) as client:
         r = await client.post(
             SARVAM_STT_URL,
-            headers={"Authorization": f"Bearer {SARVAM_KEY}"},
+            headers={"api-subscription-key": SARVAM_KEY},
             files={"file": ("audio.wav", content, "audio/wav")},
-            data={"model": "saarika:v2.5", "language_code": language})
+            data={"model": "saaras:v4", "language_code": language})
     if r.status_code != 200:
         raise HTTPException(r.status_code, f"Sarvam STT: {r.text[:200]}")
     return {"transcript": r.json().get("transcript", "")}
@@ -370,6 +370,27 @@ class TTSReq(BaseModel):
     voice: str = "priya"
     language: str = "auto"
     speed: float = 1.0
+
+
+@app.get("/api/voice/tts")
+async def voice_tts_get(text: str, lang: str = "en-IN", voice: str = "priya"):
+    """Simple GET for voice mode."""
+    lang2 = lang if lang != "auto" else _detect_lang(text)
+    async with _httpx.AsyncClient(timeout=30) as client:
+        r = await client.post(
+            SARVAM_TTS_URL,
+            headers={"api-subscription-key": SARVAM_KEY,
+                     "Content-Type": "application/json"},
+            json={"text": text[:2400], "model": "bulbul:v3",
+                  "speaker": voice, "language_code": lang2,
+                  "output_audio_codec": "wav"})
+    if r.status_code != 200:
+        raise HTTPException(r.status_code, f"Sarvam TTS: {r.text[:200]}")
+    audios = r.json().get("audios", [])
+    if not audios:
+        raise HTTPException(500, "no audio")
+    import base64 as _b
+    return Response(content=_b.b64decode(audios[0]), media_type="audio/wav")
 
 
 @app.post("/api/voice/tts")
@@ -387,7 +408,7 @@ async def voice_tts(req: TTSReq):
                      "Content-Type": "application/json"},
             json={"text": req.text[:2400], "model": "bulbul:v3",
                   "speaker": req.voice, "language_code": lang,
-                  "speech_rate": req.speed, "audio_format": "wav"})
+                  "pace": req.speed, "output_audio_codec": "wav"})
     if r.status_code != 200:
         raise HTTPException(r.status_code, f"Sarvam TTS: {r.text[:200]}")
     audios = r.json().get("audios", [])

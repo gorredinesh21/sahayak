@@ -11,25 +11,11 @@ Gemini runs on Vertex (gcloud ADC, project from env) via google-genai.
 import json
 import os
 import re
-import signal
 from datetime import datetime
-from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
-GEMINI_TIMEOUT = int(os.environ.get("GEMINI_TIMEOUT", "45"))  # seconds per call
-
-
-@contextmanager
-def _timeout(seconds):
-    """Kill the Gemini call if it takes too long."""
-    def handler(signum, frame):
-        raise TimeoutError(f"Gemini call exceeded {seconds}s")
-    old = signal.signal(signal.SIGALRM, handler)
-    signal.alarm(seconds)
-    try:
-        yield
-    finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old)
+GEMINI_TIMEOUT = int(os.environ.get("GEMINI_TIMEOUT", "45"))
+_gemini_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="gemini")
 
 from google import genai
 from google.genai import types
@@ -245,7 +231,10 @@ TOOL_SPECS = [
 
 # --------------------------------------------------------------------- intent
 INTENT_RULES = [
-    ("fraud", r"\b(fraud|scam|suspicious|fake|cheat|thug|ग़लत|धोखा)\b"),
+    ("wrong_recipient", r"\b(wrong person|wrong number|wrong recipient|wrong upi|"
+                        r"sent to wrong|paid wrong|paid the wrong|mistake|"
+                        r"galti se|गलत आदमी|गलत नंबर|wrong guy)\b"),
+    ("fraud", r"\b(fraud|scam|suspicious|fake|cheat|thug|धोखा)\b"),
     ("sla", r"\b(sla|deadline|how long|kab tak|when will|expected)\b"),
     ("missing_credit", r"\b(debited|deducted|not credited|credited|atak|stuck)\b"),
     ("status", r"\b(status|failed|failure|kya hua)\b"),
@@ -268,6 +257,23 @@ def fallback_reply(txn_id, S, intent):
     rrn = S.db.execute("SELECT rrn FROM npci_switch_log WHERE txn_id=?",
                        (txn_id,)).fetchone()
     rrn = rrn["rrn"] if rrn else "—"
+    if intent == "wrong_recipient" or (intent == "general" and p["status"] == "SUCCESS"):
+        # wrong-recipient fallback: use the scenario engine's analysis
+        try:
+            from scenarios import ScenarioEngines
+            scen = ScenarioEngines(S.db)
+            analysis = scen.wrong_recipient(txn_id)
+            verdict = analysis["verdict"].replace("_", " ").title()
+            ev = "; ".join(e["label"] for e in analysis["evidence"][:3])
+            return (f"Your payment of {amt} went through successfully. Based on my "
+                    f"analysis ({verdict}, confidence {analysis['confidence']}), "
+                    f"here's what I found: {ev}. "
+                    f"Completed UPI transfers cannot be auto-reversed, but you can: "
+                    f"(1) contact the recipient directly, (2) file a dispute, or "
+                    f"(3) if within 24h, the beneficiary bank may recall it. "
+                    f"Reference RRN {rrn}.")
+        except Exception:
+            pass
     if fr["category"] in ("HIGH", "CRITICAL") and intent in ("fraud", "general"):
         sig = "; ".join(s["description"] for s in fr["signals"][:3])
         return (f"This payment of {amt} completed, but our risk engine flagged it as "
@@ -393,17 +399,21 @@ DETECTED INTENT: {intent}
 
         steps = []
         for _ in range(MAX_TURNS):
-            with _timeout(GEMINI_TIMEOUT):
-                r = self.client.models.generate_content(
-                    model=self.model,
-                    contents=convo,
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM,
-                        tools=[types.Tool(function_declarations=[
-                            types.FunctionDeclaration(
-                                name=t["name"], description=t["description"],
-                                parameters=t["parameters"]) for t in TOOL_SPECS])],
-                        temperature=0.2))
+            future = _gemini_pool.submit(
+                self.client.models.generate_content,
+                model=self.model,
+                contents=convo,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM,
+                    tools=[types.Tool(function_declarations=[
+                        types.FunctionDeclaration(
+                            name=t["name"], description=t["description"],
+                            parameters=t["parameters"]) for t in TOOL_SPECS])],
+                    temperature=0.2))
+            try:
+                r = future.result(timeout=GEMINI_TIMEOUT)
+            except FutureTimeout:
+                raise TimeoutError(f"Gemini exceeded {GEMINI_TIMEOUT}s")
             part = r.candidates[0].content.parts[0]
             if part.function_call:
                 fc = part.function_call

@@ -656,7 +656,7 @@ async function renderChat(txnId) {
     $("#chatInput").focus();
   }
   $("#chatSend").onclick = send;
-  $("#chatInput").onkeydown = (e) => e.key === "Enter" && send();
+  $("#chatInput").onkeydown = (e) => { if (e.key === "Enter") send(); };
 }
 
 /* =============================================================== S6 PASSBOOK */
@@ -741,8 +741,8 @@ function renderLogin(err) {
     } catch (e) { renderLogin(e.message); }
   };
   $("#lgBtn").onclick = doLogin;
-  p.onkeydown = (e) => e.key === "Enter" && doLogin();
-  m.onkeydown = (e) => e.key === "Enter" && p.focus();
+  p.onkeydown = (e) => { if (e.key === "Enter") doLogin(); };
+  m.onkeydown = (e) => { if (e.key === "Enter") p.focus(); };
   api("/api/auth/profiles").then((r) => {
     $("#lgProfiles").innerHTML = r.items.map((u) =>
       `<div class="qchip" style="text-align:left" data-m="${esc(u.mobile)}" data-p="${esc(u.login_pin)}">

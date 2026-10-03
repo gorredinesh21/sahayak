@@ -196,6 +196,9 @@ class PayEngine:
         return txn_id
 
     def _decide(self, vpa, scenario, at):
+        # FORCED scenarios: deterministic, never random
+        if scenario == "mode_a":
+            return "td_Z5"                # debited, credit failed, reversal flying
         if scenario == "mode_b_yesterday":
             return "mode_b_yesterday"      # T1 stuck: backdated, rails gave up
         if scenario in ("success", "wrong_recipient"):

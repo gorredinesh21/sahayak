@@ -147,6 +147,14 @@ export async function renderHome() {
         .map(([ic, b]) => `<div style="flex:1 1 25%;text-align:center;padding:6px 4px 10px;font-size:10.5px;font-weight:700;color:var(--ink-2)">
           <div style="font-size:20px;margin-bottom:4px">${ic}</div>${b}</div>`).join("")}
     </div></div>
+    <button class="btn-ai" id="homeAI" style="margin:16px;width:calc(100% - 32px);
+      height:52px;border:none;border-radius:999px;cursor:pointer;display:flex;
+      align-items:center;justify-content:center;gap:9px;font-size:15px;font-weight:800;
+      font-family:var(--font-body);color:#fff;
+      background:linear-gradient(90deg,#7B4DFF,#5E8BFF);
+      box-shadow:0 8px 24px rgba(123,77,255,.35)">${I.sparkle}
+      <span>Ask Sahayak AI<span style="display:block;font-size:10px;font-weight:700;
+      opacity:.8">Payment stuck? Wrong person? I already know your case.</span></span></button>
     <div class="section-head"><span class="st">Recent Transactions</span>
       <span class="sa" id="viewAll">View All →</span></div>
     <div class="txn-card" id="recentList"></div>
@@ -179,6 +187,13 @@ export async function renderHome() {
   $("#tBook").onclick = $("#bnBook").onclick = $("#viewAll").onclick = renderHistory;
   $("#bnHome").onclick = renderHome;
   $("#bnQr").onclick = renderProfile;
+  $("#homeAI").onclick = async () => {
+    // find the most recent non-SUCCESS txn, else latest
+    const cands = state.history.filter(t => t.status !== "SUCCESS");
+    const target = cands[0] || state.history[0];
+    if (target) { renderChat(target.txn_id); }
+    else { toast("Make a payment first, then I can help you with it"); }
+  };
   $("#searchPill").onclick = $("#billsCard").onclick = () => toast("Not available in demo");
 }
 
@@ -487,21 +502,25 @@ function renderStatus(v) {
       ${!ok && v.app_err_msg ? `<div class="rc-row"><span class="k">Status</span><span class="v" style="color:${pend ? "var(--pending)" : "var(--failure)"}">${esc(v.app_err_msg)}</span></div>` : ""}
     </div>
     <div class="st-actions">
-      ${!ok ? `<button class="btn-ai" id="askAI">${I.sparkle}
-          <span>Ask Sahayak AI<span class="micro">Resolves in ~2 min · replies in Hindi &amp; English</span></span></button>
-        <button class="btn-navy" id="help247">Contact 24×7 Help</button>` : ""}
+      <button class="btn-ai" id="askAI">${I.sparkle}
+          <span>Ask Sahayak AI<span class="micro">${ok ? 'Paid the wrong person? I can help' : 'Resolves in ~2 min · Hindi & English'}</span></span></button>
+        ${!ok ? `<button class="btn-navy" id="help247">Contact 24×7 Help</button>` : ""}
       <button class="txt-link" id="viewDetail">View transaction details →</button>
       <button class="txt-link" id="doneBtn">Done</button>
     </div></div>`;
   $("#rrnCopy").onclick = () => { navigator.clipboard?.writeText(v.rrn || ""); toast("UPI Ref No copied"); };
   const openAgent = () => renderChat(v.txn_id);
-  if (!ok) {
-    $("#askAI").onclick = openAgent;
-    $("#help247").onclick = () => {           // the human path feels slower
-      toast("Connecting to assistant…");
-      setTimeout(openAgent, 900);
-    };
+  // event delegation — works regardless of when/how the button was rendered
+  const btn = document.getElementById("askAI");
+  if (btn) {
+    btn.addEventListener("click", openAgent, { once: true });
+    btn.style.cursor = "pointer";
   }
+  const h247 = document.getElementById("help247");
+  if (h247) h247.addEventListener("click", () => {
+    toast("Connecting to assistant…");
+    setTimeout(openAgent, 900);
+  }, { once: true });
   $("#viewDetail").onclick = () => renderDetail(v.txn_id);
   $("#doneBtn").onclick = refreshAndHome;
 }
@@ -538,13 +557,17 @@ async function renderDetail(txnId) {
       ${v.reversal_credited_at ? `<div class="rc-row"><span class="k">Reversal credited</span><span class="v" style="color:var(--success)">${humanTime(v.reversal_credited_at)}</span></div>` : ""}
       ${v.fail_code ? `<div class="rc-row"><span class="k">NPCI response code</span><span class="v mono">${esc(v.fail_code)}</span></div>` : ""}
     </div>
-    ${v.status !== "SUCCESS" ? `<div class="st-actions">
+    <div class="st-actions">
       <button class="btn-ai" id="askAI2">${I.sparkle}<span>Ask Sahayak AI
-        <span class="micro">Payment stuck? Let me handle it</span></span></button></div>` : ""}
+        <span class="micro">${v.status === "SUCCESS" ? "Need help with this payment?" : "Payment stuck? Let me handle it"}</span></span></button></div>
     <div style="height:24px"></div></div>`;
   $("#dBack").onclick = renderHome;
   $("#rrnC2").onclick = () => { navigator.clipboard?.writeText(v.rrn || ""); toast("RRN copied"); };
-  if (v.status !== "SUCCESS") $("#askAI2").onclick = () => renderChat(txnId);
+  const btn2 = document.getElementById("askAI2");
+  if (btn2) {
+    btn2.addEventListener("click", () => renderChat(txnId), { once: true });
+    btn2.style.cursor = "pointer";
+  }
 }
 
 /* ================================================================ S5 CHAT */
@@ -771,19 +794,19 @@ function renderProfile() {
 function renderDevDrawer() {
   const d = $("#devdrawer");
   const scen = [
-    ["auto", "Normal (real probability)"],
-    ["success", "Force SUCCESS"],
-    ["mode_a", "Force Mode A — fail now (Z5, reversal flying)"],
-    ["mode_b_yesterday", "Seed Mode B — pending 31h (yesterday)"],
-    ["u30", "Force wrong-PIN decline (U30)"],
-    ["no_debit", "Scenario 3 — no-debit decline (Z2, retryable)"],
-    ["wrong_recipient", "Scenario 1 — wrong recipient (pay a contact, lookalike gets it)"],
-    ["uncertain", "Scenario 4 — payer/receiver state disagreement"],
+    ["auto", "🎲 Normal", "Real probability — usually succeeds"],
+    ["success", "✅ Force SUCCESS", "Payment goes through normally"],
+    ["mode_a", "💸 Debited, not credited", "Money leaves your account but gets stuck — reversal starts flying back"],
+    ["mode_b_yesterday", "⏳ Pending past deadline", "Payment from yesterday still stuck — SLA expired, needs a complaint"],
+    ["u30", "🔑 Wrong PIN entered", "Clean decline — nothing happens, just retry"],
+    ["no_debit", "🚫 Bank declined (no debit)", "Your bank blocks it before money moves — safe to retry"],
+    ["wrong_recipient", "😬 Paid the wrong person", "You pick a contact, but a lookalike name gets the money instead"],
+    ["uncertain", "🤔 App says pending, shop got paid", "You see pending but the receiver already has the money"],
   ];
   d.innerHTML = `
-    <h4>⚡ Demo controls</h4>
-    <div class="sub">scenario for the NEXT payment you make</div>
-    ${scen.map(([v, l]) => `<button data-s="${v}" class="${state.scenario === v ? "on" : ""}">${l}</button>`).join("")}
+    <h4>⚡ Test scenarios</h4>
+    <div class="sub">Pick what happens to your NEXT payment:</div>
+    ${scen.map(([v, l, d]) => `<button data-s="${v}" class="${state.scenario === v ? "on" : ""}">${l}<div style="font-size:10px;color:#8899AD;margin-top:2px;font-weight:600">${d}</div></button>`).join("")}
     <div class="sub" style="margin-top:12px">Mode C shortcut</div>
     <button id="devC">Pre-fill ₹19,000 → fraud UPI ID</button>
     <div class="sub" style="margin-top:12px">open agent on seeded cases</div>

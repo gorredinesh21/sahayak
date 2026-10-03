@@ -507,6 +507,7 @@ def saas_payment(txn_id: int):
 @app.post("/api/saas/agent/open")
 def saas_agent_open(req: SaasOpenReq):
     """Sahayak opens ALREADY knowing the failed payment (spec §7)."""
+    engine.txn_view(req.txn_id)   # force lazy finalization FIRST
     p = SVC.payment(req.txn_id)
     if not p:
         raise HTTPException(404, "no such payment")
@@ -548,6 +549,15 @@ def saas_agent_message(req: SaasMsgReq):
         (req.case_id, "assistant", out["reply"], json.dumps(out["thinking"]),
          datetime.now().isoformat(timespec="seconds")))
     engine.db.commit()
+    # auto-ingest each exchange into memory (Cognee + SQL context)
+    try:
+        narrative = (f"Support case {req.case_id} (txn {case['txn_id']}): "
+                     f"Customer said: '{req.text[:120]}'. "
+                     f"Sahayak replied: '{out['reply'][:200]}'. "
+                     f"Engine: {out['engine']}.")
+        MEM.remember_case(req.case_id)  # updates status + Cognee narrative
+    except Exception:
+        pass  # memory ingest must never break the chat
     return out
 
 

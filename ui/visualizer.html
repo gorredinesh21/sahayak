@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sahayak — Live Payment Visualizer</title>
+<style>
+:root{--bg:#0B1220;--panel:#111B2E;--line:#1E2B42;--ink:#E7EEF8;--mut:#8CA0BC;
+--cy:#00BAF2;--ok:#2FA84F;--bad:#E5484D;--warn:#E8A13C;--vio:#7B4DFF;
+--mono:ui-monospace,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',Inter,sans-serif;
+height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:16px;padding:12px 20px;
+background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{font-weight:800;font-size:16px}.logo b{color:var(--cy)}
+.sub{font-size:12px;color:var(--mut)}
+input#txnIn{background:var(--bg);border:1px solid var(--line);color:var(--ink);
+border-radius:9px;padding:8px 12px;width:130px;font-family:var(--mono);outline:none}
+input#txnIn:focus{border-color:var(--cy)}
+button{background:var(--cy);border:none;color:#04222f;font-weight:800;border-radius:9px;
+padding:8px 16px;cursor:pointer;font-size:13px}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--mut)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--ok);
+animation:p 1.4s infinite;margin-left:auto}
+@keyframes p{50%{opacity:.3}}
+.wrap{flex:1;display:grid;grid-template-columns:1.25fr 1fr;min-height:0}
+/* flow stage */
+.flow{padding:22px;overflow-y:auto}
+.rail{display:flex;flex-direction:column;gap:0}
+.node{display:flex;gap:14px;align-items:flex-start;position:relative;padding-bottom:26px}
+.node::before{content:"";position:absolute;left:17px;top:38px;bottom:0;width:2px;
+background:var(--line)}
+.node:last-child::before{display:none}
+.node.hot::before{background:var(--cy);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.nico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+justify-content:center;font-size:16px;background:var(--panel);border:2px solid var(--line);
+z-index:1;flex-shrink:0}
+.node.ok .nico{border-color:var(--ok);background:#0E2A1B}
+.node.fail .nico{border-color:var(--bad);background:#33141A;
+box-shadow:0 0 0 5px rgba(229,72,77,.12)}
+.node.warn .nico{border-color:var(--warn);background:#33260F}
+.node.run .nico{border-color:var(--cy);background:#0B2A3A}
+.nbody{padding-top:2px}
+.nlab{font-weight:800;font-size:13.5px}
+.node.fail .nlab{color:#FF9B9E}.node.warn .nlab{color:#FFD9A8}
+.ndet{font-size:11.5px;color:var(--mut);margin-top:2px;line-height:1.5}
+.nts{font-family:var(--mono);font-size:10px;color:var(--mut)}
+/* events */
+.events{border-left:1px solid var(--line);background:var(--panel);
+display:flex;flex-direction:column;min-height:0}
+.ev-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;
+gap:10px;align-items:center;font-weight:800;font-size:13px}
+.ev-list{flex:1;overflow-y:auto;padding:10px}
+.ev{display:flex;gap:10px;padding:8px 10px;border-radius:10px;margin-bottom:6px;
+background:var(--bg);border:1px solid var(--line);animation:in .25s ease;
+cursor:pointer}
+@keyframes in{from{transform:translateY(6px);opacity:0}to{opacity:1}}
+.ev .k{font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;
+height:fit-content;white-space:nowrap}
+.k.user_action{background:#12303F;color:#7FD4F5}.k.psp{background:#221A44;color:#C9B9FF}
+.k.npci{background:#0E2A1B;color:#7FE3C4}.k.payer_bank{background:#33260F;color:#FFD9A8}
+.k.receiver_bank{background:#33141A;color:#FF9B9E}.k.backend{background:#1B2B44;color:#AFC6E0}
+.k.tool,.k.ai{background:#241A33;color:#D9C2FF}.k.complaint{background:#33260F;color:#FFD9A8}
+.k.recovery{background:#0E2A1B;color:#7FE3C4}
+.ev .t{font-size:12px}.ev .t b{display:block;font-size:12.5px}
+.ev .t span{color:var(--mut);font-size:11px}
+.ev .ts{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--mut)}
+.ev.fail{border-color:#5A2126}.ev.warn{border-color:#54401C}
+.ev-detail{font-size:11px;color:var(--mut);padding:6px 12px;background:var(--panel);
+border-radius:8px;margin:-2px 10px 8px;display:none;white-space:pre-wrap;
+font-family:var(--mono)}
+.ev-detail.show{display:block}
+.empty{margin:auto;text-align:center;color:var(--mut);font-size:13px;padding:40px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SAHA<b>YAK</b> · Visualizer</div>
+  <div class="sub">live payment execution &amp; AI troubleshooting</div>
+  <input id="txnIn" placeholder="txn id">
+  <button onclick="watch()">Watch</button>
+  <button class="ghost" onclick="loadDemo()">Latest demo txns</button>
+  <span class="live-dot" id="dot" style="display:none"></span>
+</header>
+<div class="wrap">
+  <div class="flow" id="flow"><div class="empty">Enter a transaction id (or load the
+    latest demo txns) to watch its execution flow.<br>Payments made in the app stream
+    here live over SSE.</div></div>
+  <div class="events">
+    <div class="ev-head">🧾 Event stream <span id="evCount"
+      style="color:var(--mut);font-weight:600;font-size:11px"></span></div>
+    <div class="ev-list" id="evList"></div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+let es=null, curTxn=null;
+const NODES=[
+ {id:'customer',ico:'👤',lab:'Customer'},
+ {id:'psp',ico:'📱',lab:'PSP / Paytm app'},
+ {id:'npci',ico:'🔄',lab:'NPCI switch'},
+ {id:'payer_bank',ico:'🏦',lab:"Payer's bank"},
+ {id:'receiver_bank',ico:'🏛️',lab:"Receiver's bank"},
+ {id:'backend',ico:'⚙️',lab:'Sahayak backend'},
+ {id:'ai',ico:'🤖',lab:'Sahayak AI'}];
+
+function renderFlow(events){
+  const st={};NODES.forEach(n=>st[n.id]={cls:'',det:'',ts:null});
+  events.forEach(e=>{
+    const n=st[e.kind==='user_action'?'customer':e.kind];
+    if(!n)return;
+    n.ts=e.ts;
+    if(e.status==='fail')n.cls='fail';
+    else if(e.status==='warn'||e.status==='pending')n.cls=n.cls==='fail'?'fail':'warn';
+    else n.cls=n.cls==='fail'?'fail':n.cls==='warn'?'warn':'ok';
+    n.det=(n.det?n.det+' · ':'')+e.label;
+  });
+  const anyFail=NODES.some(n=>st[n.id].cls==='fail');
+  $('#flow').innerHTML=`<div class="rail">`+NODES.map(n=>{
+    const s=st[n.id];
+    return `<div class="node ${s.cls}">
+      <div class="nico">${n.ico}</div>
+      <div class="nbody"><div class="nlab">${n.lab}${anyFail&&s.cls==='fail'?
+        ' — <span style="color:#FF9B9E">FAILURE POINT</span>':''}</div>
+      <div class="ndet">${s.det||'no events'}</div>
+      ${s.ts?`<div class="nts">${s.ts.replace('T',' ').slice(0,23)}</div>`:''}
+      </div></div>`;}).join('')+`</div>`;
+}
+
+function renderEvents(events){
+  $('#evCount').textContent=`· ${events.length} events`;
+  $('#evList').innerHTML=events.map(e=>`
+    <div><div class="ev ${e.status}" data-d="${esc(JSON.stringify(e.detail))}">
+      <span class="k ${e.kind}">${e.kind}</span>
+      <div class="t"><b>${esc(e.label)}</b><span>${esc(e.actor||'')}</span></div>
+      <div class="ts">${e.ts.slice(11,23)}</div></div>
+      <div class="ev-detail"></div></div>`).join('')||'<div class="empty">no events yet</div>';
+  document.querySelectorAll('.ev').forEach(el=>el.onclick=()=>{
+    const d=el.nextElementSibling;
+    d.textContent=el.dataset.d&&el.dataset.d!=='null'?el.dataset.d:'';
+    d.classList.toggle('show');});
+}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function watch(){
+  const id=parseInt($('#txnIn').value.trim());
+  if(!id)return;
+  curTxn=id;
+  if(es)es.close();
+  // replay persisted events, then stream live
+  const r=await(await fetch(`/api/diag/${id}`)).json();
+  renderFlow(r.events);renderEvents(r.events);
+  es=new EventSource(`/api/events/stream/${id}`);
+  es.onmessage=m=>{
+    const ev=JSON.parse(m.data);
+    const cur=r.events;
+    if(!cur.some(x=>x.id===ev.id))cur.push(ev);
+    renderFlow(cur);renderEvents(cur);
+  };
+  $('#dot').style.display='block';
+}
+
+async function loadDemo(){
+  const r=await(await fetch('/api/saas/profiles')).json();
+  const list=(r.items||[]).map(p=>`txn #${p.txn_id} · ${p.tag} ${p.scenario}`).join('\n');
+  const pick=prompt('Demo payments:\n'+list+'\n\nAlso: make a payment in the app and it streams here live. Enter txn id:',(r.items||[])[0]&&r.items[0].txn_id);
+  if(pick){$('#txnIn').value=pick;watch();}
+}
+</script>
+</body>
+</html>

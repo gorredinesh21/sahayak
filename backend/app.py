@@ -26,6 +26,9 @@ from pay import PayEngine, MERCHANT_DISPLAY                 # noqa: E402
 from services import Services                               # noqa: E402
 from ai import SahayakAI                                    # noqa: E402
 from memory import MemoryLayer                              # noqa: E402
+from events import EventBus                                 # noqa: E402
+from complaints import ComplaintService                     # noqa: E402
+from scenarios import ScenarioEngines                       # noqa: E402
 
 DB_PATH = os.environ.get(
     "SAHAYAK_DB", os.path.join(os.path.dirname(__file__), "..", "sandbox", "sahayak.db"))
@@ -33,10 +36,15 @@ DEMO_USER = os.environ.get("SAHAYAK_USER", "dinesh.demo")
 UI_DIR = os.path.join(os.path.dirname(__file__), "..", "ui")
 
 engine = PayEngine(DB_PATH)
+BUS = EventBus(engine.db)          # share the single writer connection
+engine.bus = BUS
 router = Router(DB_PATH)
 SVC = Services(DB_PATH)
 MEM = MemoryLayer(engine.db)
-AI = SahayakAI(SVC, engine.db, MEM)
+COMPLAINTS = ComplaintService(engine.db, BUS)
+SCEN = ScenarioEngines(engine.db)
+AI = SahayakAI(SVC, engine.db, MEM, complaints=COMPLAINTS,
+               scenario_engines=SCEN)
 app = FastAPI(title="Paytm Demo — Sahayak")
 
 SESSIONS = {}          # token -> user_id (in-memory; demo-scale auth)
@@ -318,6 +326,121 @@ def dev_demo_cases():
     return {"items": [dict(zip(r.keys(), r)) for r in rows]}
 
 
+# --------------------------------------------------------- contacts/search
+@app.get("/api/contacts")
+def contacts(request: Request, q: str = "", limit: int = 30):
+    uid = get_user(request)
+    like = f"%{q.lower()}%"
+    rows = engine.db.execute(
+        """SELECT c.contact_user_id, u.name, u.home_city, u.state, u.payer_bank,
+                  u.psp_bank, c.times_paid, c.last_paid_at
+           FROM contacts c JOIN users u ON u.user_id = c.contact_user_id
+           WHERE c.user_id = ? AND (LOWER(u.name) LIKE ? OR c.contact_user_id LIKE ?)
+           ORDER BY c.times_paid DESC, u.name LIMIT ?""",
+        (uid, like, like, limit)).fetchall()
+    return {"items": [dict(zip(r.keys(), r)) | {
+        "vpa": r["contact_user_id"] + "@paytm"} for r in rows]}
+
+
+# ------------------------------------------------------- scenario services
+class AnalyzeReq(BaseModel):
+    txn_id: int
+    intended_vpa: str | None = None
+
+
+@app.post("/api/scenario/analyze")
+def scenario_analyze(req: AnalyzeReq):
+    engine.txn_view(req.txn_id)          # lazy-finalize first
+    out = SCEN.wrong_recipient(req.txn_id, req.intended_vpa)
+    BUS.emit(req.txn_id, "tool", "analyze_wrong_recipient",
+             f"Mistaken-transfer analysis: {out.get('verdict')}",
+             {"confidence": out.get("confidence")})
+    return out
+
+
+@app.get("/api/scenario/retry_safety/{txn_id}")
+def scenario_retry(txn_id: int):
+    engine.txn_view(txn_id)
+    return SCEN.retry_safety(txn_id)
+
+
+@app.get("/api/scenario/state_agreement/{txn_id}")
+def scenario_agreement(txn_id: int):
+    engine.txn_view(txn_id)
+    return SCEN.state_agreement(txn_id)
+
+
+# ------------------------------------------------------------ complaints
+class DisputeReq(BaseModel):
+    txn_id: int
+    category: str
+    description: str
+
+
+@app.post("/api/complaints")
+def file_complaint(req: DisputeReq):
+    engine.txn_view(req.txn_id)
+    p = SVC.payment(req.txn_id)
+    if not p:
+        raise HTTPException(404, "no such payment")
+    rrn = engine.db.execute("SELECT rrn FROM npci_switch_log WHERE txn_id=?",
+                            (req.txn_id,)).fetchone()
+    f = {"rrn": rrn["rrn"] if rrn else None,
+         "txn_date": p["initiated_at"][:10], "amount_paise": p["amount_paise"],
+         "payer_vpa": f"{p['user_id']}@paytm", "payee_vpa": p["beneficiary_vpa"],
+         "payer_bank": p["payer_bank"] or "HDFC Bank",
+         "payee_bank": "@" + p["beneficiary_vpa"].split("@")[-1],
+         "category": req.category, "description": req.description}
+    try:
+        out = COMPLAINTS.submit(f, txn_id=req.txn_id, seed=req.txn_id)
+        return out
+    except Exception as e:
+        raise HTTPException(422, f"[{getattr(e, 'stage', 'SUBMIT')}] {e}")
+
+
+@app.get("/api/complaints/{complaint_id}")
+def complaint_status(complaint_id: str):
+    r = COMPLAINTS.status(complaint_id)
+    if not r:
+        raise HTTPException(404, "unknown complaint")
+    return r
+
+
+# --------------------------------------------------------- events / SSE
+@app.get("/api/diag/{txn_id}")
+def diag_events(txn_id: int, after: int = 0):
+    return {"events": BUS.events_for(txn_id, after)}
+
+
+from fastapi.responses import StreamingResponse             # noqa: E402
+import asyncio as _asyncio                                   # noqa: E402
+
+
+@app.get("/api/events/stream/{txn_id}")
+async def event_stream(txn_id: int):
+    """SSE: live diag events for a transaction (persisted-event driven)."""
+    q = BUS.subscribe(txn_id)
+    last_id = 0
+
+    async def gen():
+        nonlocal last_id
+        try:
+            while True:
+                evs = BUS.events_for(txn_id, last_id)
+                for e in evs:
+                    last_id = e["id"]
+                    yield f"data: {json.dumps(e)}\n\n"
+                if not evs:
+                    yield ": ping\n\n"
+                await _asyncio.sleep(0.7)
+        finally:
+            BUS.unsubscribe(txn_id, q)
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})
+
+
 # ------------------------------------------------------------------- SaaS
 PROFILE_TAGS = {"A": "Gateway failure", "B": "Debited · SLA active",
                 "C": "SLA expired", "D": "Suspicious payment"}
@@ -361,6 +484,7 @@ class SaasMsgReq(BaseModel):
 
 @app.get("/api/saas/payment/{txn_id}")
 def saas_payment(txn_id: int):
+    engine.txn_view(txn_id)
     p = SVC.payment(txn_id)
     if not p:
         raise HTTPException(404, "no such payment")
@@ -443,7 +567,9 @@ def saas_case_close(case_id: str):
 
 @app.get("/api/ai/status")
 def ai_status():
-    st = {"gemini": "vertex-ok" if AI.client else
+    st = {"engines": "stages|sla|fraud|wrong-recipient|retry-safety|state-agreement",
+          "complaints": "SIMULATED npci-style gateway",
+          "gemini": "vertex-ok" if AI.client else
           f"unavailable: {getattr(AI, 'init_error', 'n/a')}",
           "model": AI.model, "memory": MEM.mode,
           "fallback": "deterministic replies active if Gemini fails"}
@@ -457,6 +583,12 @@ def ai_status():
 
 
 # ------------------------------------------------------------------- static UI
+@app.get("/visualizer", response_class=HTMLResponse)
+def visualizer_page():
+    with open(os.path.join(UI_DIR, "visualizer.html")) as f:
+        return HTMLResponse(f.read())
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard():
     with open(os.path.join(UI_DIR, "dashboard.html")) as f:

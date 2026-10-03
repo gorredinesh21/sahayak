@@ -1,0 +1,1555 @@
+{
+ "base": "https://sahayak-441384612427.us-central1.run.app",
+ "runs_required": 10,
+ "summary": {
+  "S1": {
+   "consecutive_passes": 10,
+   "accepted": true
+  },
+  "S2": {
+   "consecutive_passes": 10,
+   "accepted": true
+  },
+  "S3": {
+   "consecutive_passes": 10,
+   "accepted": true
+  },
+  "S4": {
+   "consecutive_passes": 10,
+   "accepted": true
+  }
+ },
+ "results": [
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 1,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 2,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 3,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "gemini"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "I understand you're concerned about paying the wrong person. I can help you check that."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 4,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 5,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 6,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 7,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 8,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 9,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S1_wrong_recipient",
+   "run": 10,
+   "checks": [
+    {
+     "check": "payment succeeded (it does, that's the problem)",
+     "ok": true,
+     "evidence": "SUCCESS"
+    },
+    {
+     "check": "money went to a DIFFERENT (lookalike) recipient",
+     "ok": true,
+     "evidence": "meera.deshpande18556@paytm \u2192 meera.babu112@paytm"
+    },
+    {
+     "check": "analysis verdict flags wrong/possible",
+     "ok": true,
+     "evidence": "LIKELY_WRONG_RECIPIENT"
+    },
+    {
+     "check": "lookalike evidence present",
+     "ok": true,
+     "evidence": "['payment completed', 'never paid before', 'lookalike beneficiary', 'geography']"
+    },
+    {
+     "check": "no fraud accusation (guardrail)",
+     "ok": true,
+     "evidence": "guardrails only"
+    },
+    {
+     "check": "AI replies substantively",
+     "ok": true,
+     "evidence": "deterministic"
+    },
+    {
+     "check": "AI does not promise auto-reversal",
+     "ok": true,
+     "evidence": "Payment \u20b91,500 \u2014 status SUCCESS. Tell me what you'd like to check and I'll investigate."
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 1,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763426-E990"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763426"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0928\u0947\u0936, \u0939\u093e\u0901, \u092e\u0941\u091d\u0947 \u0926\u093f\u0916 \u0930\u0939\u093e \u0939\u0948 \u0915\u093f \u0906\u092a\u0915\u093e \u20b9600 \u0915\u093e \u092a\u0947\u092e\u0947\u0902\u091f \u091c\u094b 2 \u0905\u0915\u094d\u091f\u0942\u092c\u0930 \u0915\u094b 00:52:39 \u092a\u0930 \u0936\u0941\u0930\u0942 \u0939\u0941\u0906 \u0925\u093e, \u0905\u092d\u0940 \u092d\u0940 \u092a\u0947\u0902\u0921"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 2,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763427-A9D6"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763427"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Hello Dinesh, I understand your concern. The SLA for your \u20b9600 payment to kirana@oksbi expired on 2026-10-03 a"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 3,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763428-5383"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763428"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0928\u0947\u0936! \u0939\u093e\u0901, \u092e\u0948\u0902 \u0938\u092e\u091d \u0938\u0915\u0924\u093e \u0939\u0942\u0901 \u0915\u093f \u0906\u092a \u092a\u0930\u0947\u0936\u093e\u0928 \u0939\u0948\u0902. \u0906\u092a\u0915\u0947 \u20b9600 \u0915\u0947 \u092a\u0947\u092e\u0947\u0902\u091f \u0915\u093e SLA (\u0938\u0947\u0935\u093e \u0938\u094d\u0924\u0930 \u0938\u092e\u091d\u094c\u0924\u093e) 2026-10-03"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 4,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763429-0C7F"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763429"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Haan, Dinesh, mujhe pata hai ki aapka \u20b9600 ka payment jo 2 October 2026 ko 00:53:04 baje shuru hua tha, abhi b"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 5,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763430-2C4E"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763430"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Dinesh, aapka \u20b9600 ka payment kirana@oksbi ko abhi bhi pending hai. Is payment ke liye 24 ghante ki SLA deadli"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 6,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763431-5F87"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763431"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0928\u0947\u0936, \u092e\u0948\u0902 \u0938\u092e\u091d \u0938\u0915\u0924\u093e \u0939\u0942\u0901 \u0915\u093f \u0906\u092a \u092a\u0930\u0947\u0936\u093e\u0928 \u0939\u0948\u0902. \u0906\u092a\u0915\u093e \u20b9600 \u0915\u093e \u092a\u0947\u092e\u0947\u0902\u091f \u091c\u094b kirana@oksbi \u0915\u094b \u0915\u093f\u092f\u093e \u0917\u092f\u093e \u0925\u093e, \u0909\u0938\u0915\u093e SLA "
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 7,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763432-7C89"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763432"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Hello Dinesh, mujhe pata hai aapka paisa atak gaya hai. Aapka \u20b9600 ka payment kirana@oksbi ko pending hai aur "
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 8,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763433-5343"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763433"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0928\u0947\u0936! \u0939\u093e\u0901, \u092e\u0948\u0902 \u0938\u092e\u091d \u0938\u0915\u0924\u093e \u0939\u0942\u0901 \u0915\u093f \u0906\u092a \u091a\u093f\u0902\u0924\u093f\u0924 \u0939\u094b\u0902\u0917\u0947. \u0906\u092a\u0915\u0940 \u20b9600 \u0915\u0940 \u092a\u0947\u092e\u0947\u0902\u091f \u091c\u094b kirana@oksbi \u0915\u094b \u0915\u0940 \u0917\u0908 \u0925\u0940, \u0935\u0939 \u0905\u092d"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 9,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763434-F4F3"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763434"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Haan Dinesh, aapka kehna sahi hai. Aapke \u20b9600 ke payment ka SLA 2026-10-03T00:53:53 par expire ho chuka hai. I"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S2_stuck_sla_complaint",
+   "run": 10,
+   "checks": [
+    {
+     "check": "backend produced PENDING (stuck)",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "SLA engine reports EXPIRED",
+     "ok": true,
+     "evidence": "EXPIRED"
+    },
+    {
+     "check": "dispute filed (simulated) with ticket",
+     "ok": true,
+     "evidence": "NPCI-100201763435-923A"
+    },
+    {
+     "check": "payload carries RRN + both banks",
+     "ok": true,
+     "evidence": "100201763435"
+    },
+    {
+     "check": "complaint status tracked",
+     "ok": true,
+     "evidence": "ACCEPTED"
+    },
+    {
+     "check": "visualizer captured the complaint event",
+     "ok": true,
+     "evidence": "2"
+    },
+    {
+     "check": "AI explains SLA breach / action",
+     "ok": true,
+     "evidence": "Haan, Dinesh, aapki \u20b9600 ki payment jo kirana@oksbi ko ki gayi thi, uska SLA 2026-10-03T00:54:09 par expire ho"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 1,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 2,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 3,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 4,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 5,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 6,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 7,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 8,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 9,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S3_no_debit_retry",
+   "run": 10,
+   "checks": [
+    {
+     "check": "backend produced clean FAILURE",
+     "ok": true,
+     "evidence": "FAILURE"
+    },
+    {
+     "check": "no debit recorded",
+     "ok": true,
+     "evidence": "None"
+    },
+    {
+     "check": "retry safety says SAFE",
+     "ok": true,
+     "evidence": "confirmed no-debit failure (rejected before authorization); no funds left the account"
+    },
+    {
+     "check": "AI does not block the retry",
+     "ok": true,
+     "evidence": "Your \u20b9450 payment failed at the authorization stage but is still INSIDE its resolution window (valid"
+    },
+    {
+     "check": "retry payment SUCCEEDS via backend",
+     "ok": true,
+     "evidence": "SUCCESS"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 1,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 2,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 3,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 4,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 5,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 6,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 7,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 8,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 9,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  },
+  {
+   "scenario": "S4_state_disagreement",
+   "run": 10,
+   "checks": [
+    {
+     "check": "payer view PENDING",
+     "ok": true,
+     "evidence": "PENDING"
+    },
+    {
+     "check": "receiver view CREDITED",
+     "ok": true,
+     "evidence": "CREDITED"
+    },
+    {
+     "check": "engine flags DISAGREEMENT",
+     "ok": true,
+     "evidence": "DISAGREEMENT"
+    },
+    {
+     "check": "visualizer shows receiver-credit + backend-warning events",
+     "ok": true,
+     "evidence": "['user_action', 'receiver_bank', 'backend']"
+    },
+    {
+     "check": "retry correctly BLOCKED (unknown debit state)",
+     "ok": true,
+     "evidence": "verify_first"
+    },
+    {
+     "check": "AI addresses the mismatch",
+     "ok": true,
+     "evidence": "Your \u20b9900 payment failed at the confirmation stage but is still INSIDE its resolution window (pending_first, 0"
+    }
+   ],
+   "pass": true
+  }
+ ],
+ "generated": "2026-10-03T13:26:56"
+}

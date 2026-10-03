@@ -60,11 +60,30 @@ def iso(dt):
 
 
 class PayEngine:
-    def __init__(self, db_path=DB_PATH):
+    def __init__(self, db_path=DB_PATH, bus=None):
         self.db_path = db_path
+        self.bus = bus
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA busy_timeout=5000")
+
+    def _lookalike_of(self, user_id, intended_vpa):
+        """Deterministic wrong-recipient target: a different user whose handle
+        closely resembles the intended contact (same first name preferred)."""
+        ih = intended_vpa.split("@")[0]
+        first = ih.split(".")[0]
+        row = self.db.execute(
+            """SELECT u.user_id FROM contacts c
+               JOIN users u ON u.user_id = c.contact_user_id
+               WHERE c.user_id = ? AND u.user_id LIKE ?
+                 AND u.user_id != ? ORDER BY u.user_id LIMIT 1""",
+            (user_id, first + ".%", ih)).fetchone()
+        if row:
+            return f"{row['user_id']}@paytm"
+        row = self.db.execute(
+            """SELECT u.user_id FROM users u WHERE u.user_id LIKE ? AND u.user_id != ?
+               ORDER BY u.user_id LIMIT 1""", (first + ".%", ih)).fetchone()
+        return f"{row['user_id']}@paytm" if row else None
 
     # ------------------------------------------------------------- wallet
     def _wallet(self, user_id, txn_id, delta_paise, kind, at):
@@ -130,8 +149,14 @@ class PayEngine:
         if pin == "0000":
             return self._decline_pin(user_id, vpa, amount_paise, now)
 
+        if scenario == "wrong_recipient":
+            vpa = self._lookalike_of(user_id, vpa) or vpa   # pays the lookalike
         at = now - timedelta(hours=31) if scenario == "mode_b_yesterday" else now
         txn_id = self.next_txn_id()
+        if self.bus:
+            self.bus.emit(txn_id, "user_action", "customer",
+                          f"Payment initiated · ₹{amount_paise/100:,.0f} → {vpa}",
+                          {"scenario": scenario, "psp": "Paytm"})
         direction = "P2M" if vpa in MERCHANT_DISPLAY else "P2P"
         self.db.execute(
             "INSERT INTO paytm_txn (txn_id, user_id, direction, amount_paise,"
@@ -171,10 +196,14 @@ class PayEngine:
         return txn_id
 
     def _decide(self, vpa, scenario, at):
-        if scenario in ("success", "mode_a", "mode_b_yesterday"):
-            return scenario
-        if scenario == "u30":
-            return "u30"
+        if scenario == "mode_b_yesterday":
+            return "mode_b_yesterday"      # T1 stuck: backdated, rails gave up
+        if scenario in ("success", "wrong_recipient"):
+            return "success"
+        if scenario in ("no_debit", "u30"):
+            return "u30" if scenario == "u30" else "bd_z2"
+        if scenario == "uncertain":
+            return "uncertain"
         suffix = "@" + vpa.split("@")[-1]
         td = BANK_TD.get(suffix, 0.006)
         if at.hour in (20, 21, 22):
@@ -256,6 +285,11 @@ class PayEngine:
                                    (txn_id,)).fetchone()["user_id"]
                 self._wallet(owner, txn_id, -amount, "payout", at)
                 self._credit_beneficiary(txn_id, owner, vpa, amount, at)
+                if self.bus:
+                    self.bus.emit(txn_id, "payer_bank", "remitter-bank",
+                                  "Debit authorized", {"amount": amount}, "ok")
+                    self.bus.emit(txn_id, "npci", "switch",
+                                  "Credit confirmed at beneficiary bank", None, "ok")
                 return {"status": "SUCCESS"}
             if decision in ("td_Z5", "td_Z8", "mode_a"):
                 code = "Z5" if decision in ("mode_a", "td_Z5") else "Z8"
@@ -287,6 +321,35 @@ class PayEngine:
                        "WHERE txn_id=?", (txn_id,))
             db.commit()
             return {"status": "PENDING", "code": decision.split("_")[1]}
+
+        if decision == "uncertain":
+            # scenario 4: payer view PENDING, receiver view CREDITED
+            upd_psp(None, 30000)
+            write_debit()
+            write_credit_leg("00", "CREDITED", acct="ACTIVE")
+            db.execute("UPDATE paytm_txn SET app_err_msg='Payment processing' "
+                       "WHERE txn_id=?", (txn_id,))
+            db.commit()
+            if self.bus:
+                self.bus.emit(txn_id, "receiver_bank", "beneficiary-bank",
+                              "Credit APPLIED on receiver side", None, "ok")
+                self.bus.emit(txn_id, "backend", "paytm-txn",
+                              "Payer view still PENDING — state disagreement "
+                              "detected", {"payer_view": "PENDING",
+                                           "receiver_view": "CREDITED"}, "warn")
+            return {"status": "PENDING", "code": "UNCERTAIN"}
+
+        if decision == "bd_z2":
+            upd_psp("Z2", 340)
+            db.execute("UPDATE paytm_txn SET status='FAILURE', "
+                       "app_err_msg='Declined by bank (limit / risk rule)' "
+                       "WHERE txn_id=?", (txn_id,))
+            db.commit()
+            if self.bus:
+                self.bus.emit(txn_id, "payer_bank", "remitter-bank",
+                              "Authorization REJECTED before debit (Z2)",
+                              {"code": "Z2", "debited": False}, "fail")
+            return {"status": "FAILURE", "code": "Z2", "no_debit": True}
 
         if decision in ("bd", "u30"):
             code = "U30"

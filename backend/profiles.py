@@ -33,8 +33,11 @@ class PSeeder:
 
     def user(self, uid, name, mobile, device, lang="en"):
         self.db.execute(
-            "INSERT OR REPLACE INTO users VALUES (?,?,?,?,?,?,?,?,?)",
-            (uid, name, "FULL", lang, "Mumbai", device, 400, mobile, mobile[-4:]))
+            "INSERT OR REPLACE INTO users (user_id,name,kyc_tier,preferred_lang,"
+            "home_city,state,device_id,signup_days,mobile,login_pin,psp_bank,"
+            "payer_bank) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (uid, name, "FULL", lang, "Mumbai", "Maharashtra", device, 400,
+             mobile, mobile[-4:], "Paytm (HDFC PSP)", "HDFC Bank"))
         # some ordinary history so stats/risk features are real
         for i in range(30):
             at = NOW - timedelta(hours=random.uniform(24, 2000))
@@ -135,6 +138,57 @@ def main():
     p.user("chitra.profile", "Chitra Iyer", "9900000033", "dev_chitra_c")
     p.user("dev.profile", "Dev Malhotra", "9900000044", "dev_dev_d")
 
+    # demo hero — the login the phone app uses
+    p.user("dinesh.demo", "Dinesh Gorre", "9848012345", "dev_dinesh_01", "hi")
+    for i in range(40):
+        at = NOW - timedelta(hours=random.uniform(4, 2100))
+        ben = random.choice([m for m in MERCHANT_DISPLAY if "quickloan" not in m])
+        amt = random.randint(10000, 400000)
+        t0 = p.txn()
+        p.db.execute(
+            "INSERT INTO paytm_txn (txn_id,user_id,direction,amount_paise,"
+            "remitter_vpa,beneficiary_vpa,initiated_at,status,app_err_msg,"
+            "device_id,is_demo_case,entry_type) VALUES (?,?,?,?,?,?,?,?,?,?,0,'debit')",
+            (t0, "dinesh.demo", "P2M", amt, "dinesh.demo@paytm", ben, iso(at),
+             "SUCCESS", None, "dev_dinesh_01"))
+        p.rrn_n += 1
+        r0 = f"{at.month:02d}{at.day:02d}{p.rrn_n % 100000000:08d}"
+        p.db.execute("INSERT INTO npci_switch_log VALUES (?,?,?,?,?,?,?)",
+                     (r0, t0, "PSP_TO_NPCI", "00", iso(at), 0, None))
+        p.db.execute("INSERT INTO remitter_bank_ledger VALUES (?,?,?,?,?,?)",
+                     (r0, iso(at), amt, None, None, 0))
+        p.rrn_n += 1
+        r1 = f"{at.month:02d}{at.day:02d}{p.rrn_n % 100000000:08d}"
+        p.db.execute("INSERT INTO npci_switch_log VALUES (?,?,?,?,?,?,?)",
+                     (r1, t0, "NPCI_TO_BEN", "00", iso(at), 0,
+                      "SETTLE-" + at.strftime("%Y%m%d")))
+        p.db.execute("INSERT INTO beneficiary_bank_ledger VALUES (?,?,?,?,?,?)",
+                     (r1, iso(at), "CREDITED", None, "ACTIVE", 0))
+
+    # hero demo contacts (deterministic, diverse, 3 with payment history)
+    import json as _json
+    pool = [r[0] for r in p.db.execute(
+        "SELECT user_id FROM users WHERE home_city='Mumbai' AND user_id NOT"
+        " LIKE '%.profile' ORDER BY user_id LIMIT 200").fetchall()] if False else [
+        r[0] for r in p.db.execute(
+            "SELECT user_id FROM users WHERE home_city='Mumbai'"
+            " AND user_id NOT LIKE '%.profile'").fetchall()]
+    random.Random(123).shuffle(pool)
+    seen, picks = set(), []
+    for uid in pool:
+        f = uid.split(".")[0]
+        if f in seen:
+            continue
+        seen.add(f); picks.append(uid)
+        if len(picks) == 12:
+            break
+    for i, c in enumerate(picks):
+        p.db.execute("INSERT OR REPLACE INTO contacts VALUES (?,?,?,?,1)",
+                     ("dinesh.demo", c, [4, 2, 7][i] if i < 3 else 0,
+                      "2026-09-2%dT1%d:00:00" % (i + 1, i) if i < 3 else None))
+    p.db.commit()
+    LOOKALIKE_SOURCE = picks[1] if len(picks) > 1 else None
+
     t = p.txn()
     PROFILES_AMOUNTS = {}
     PROFILES_BEN = {}
@@ -187,7 +241,8 @@ def main():
     # rebuild stats for the four customers (SQL, same as seeder)
     from seed_stats import build  # tiny helper below
     build(db, [u[0] for u in db.execute(
-        "SELECT user_id FROM users WHERE user_id LIKE '%.profile'")])
+        "SELECT user_id FROM users WHERE user_id LIKE '%.profile'"
+        " OR user_id='dinesh.demo'")])
 
     for pr in PROFILES:
         print(f"profile {pr['tag']}: txn#{pr['txn_id']} customer={pr['user_id']}")

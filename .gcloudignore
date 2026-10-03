@@ -1,0 +1,9 @@
+*.db
+*.db-wal
+*.db-shm
+.git
+__pycache__
+*.pyc
+.env
+nohup.out
+tests/report.json

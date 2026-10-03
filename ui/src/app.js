@@ -231,7 +231,9 @@ export function renderPay(ctx = {}) {
       <div style="margin:22px 16px 0;display:flex;gap:10px">
         <button class="qchip" id="goScan">📷 Scan any QR code</button>
         <button class="qchip" id="showMyQr">My QR code</button>
-      </div>`;
+      </div>
+      <div class="field-lb" style="margin:26px 16px 6px">Your contacts</div>
+      <div id="contactList" style="margin:0 16px"></div>`;
     const inp = $("#vpaIn"); inp.focus();
     const sync = () => { cta.disabled = !inp.value.trim().includes("@"); };
     inp.oninput = sync; sync();
@@ -239,6 +241,18 @@ export function renderPay(ctx = {}) {
     inp.onkeydown = (e) => e.key === "Enter" && !cta.disabled && verify();
     $("#goScan").onclick = () => renderScan();
     $("#showMyQr").onclick = renderMyQR;
+    api("/api/contacts").then((r) => {
+      $("#contactList").innerHTML = r.items.slice(0, 12).map((c) => `
+        <div class="txn-row" data-v="${esc(c.vpa)}" data-n="${esc(c.name)}">
+          <div class="tico2 t-s">👤</div>
+          <div class="tmain"><div class="tn">${esc(c.name)}
+            ${c.times_paid ? `<span style="font-size:10px;color:var(--ink-3)">· paid ${c.times_paid}×</span>` : ""}</div>
+          <div class="ts">${esc(c.vpa)} · ${esc(c.payer_bank || "")} · ${esc((c.psp_bank || "").replace("Paytm ", ""))}</div></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93A1B0" stroke-width="2.4"><path d="m9 6 6 6-6 6"/></svg>
+        </div>`).join("") || '<div style="color:var(--ink-3);font-size:12.5px">No contacts yet</div>';
+      $("#contactList").querySelectorAll("[data-v]").forEach((el) =>
+        el.onclick = () => { $("#vpaIn").value = el.dataset.v; verify(); });
+    }).catch(() => {});
     async function verify() {
       const v = inp.value.trim();
       cta.disabled = true; cta.textContent = "Verifying…";
@@ -546,7 +560,11 @@ async function renderChat(txnId) {
         <div class="cs" id="chatSub">reading your case…</div></div></div>
     <div class="chat-body" id="chatBody"></div>
     <div class="quick" id="quick"></div>
-    <div class="chat-in"><input id="chatInput" placeholder="Type your message…">
+    <div class="chat-in">
+      <button id="micBtn" title="Voice support coming soon" disabled
+        style="background:#fff;border:1.5px solid var(--line);border-radius:999px;
+        width:42px;height:42px;font-size:16px;cursor:not-allowed;opacity:.55">🎙️</button>
+      <input id="chatInput" placeholder="Type your message…">
       <button id="chatSend">Send</button></div>
   </div>`;
   $("#cBack").onclick = renderHome;
@@ -758,6 +776,9 @@ function renderDevDrawer() {
     ["mode_a", "Force Mode A — fail now (Z5, reversal flying)"],
     ["mode_b_yesterday", "Seed Mode B — pending 31h (yesterday)"],
     ["u30", "Force wrong-PIN decline (U30)"],
+    ["no_debit", "Scenario 3 — no-debit decline (Z2, retryable)"],
+    ["wrong_recipient", "Scenario 1 — wrong recipient (pay a contact, lookalike gets it)"],
+    ["uncertain", "Scenario 4 — payer/receiver state disagreement"],
   ];
   d.innerHTML = `
     <h4>⚡ Demo controls</h4>

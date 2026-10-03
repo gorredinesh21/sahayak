@@ -32,16 +32,59 @@ RULES (non-negotiable):
 4. Money is never moved by you. Complaints/escalations are records, not transfers.
 5. Reply in the customer's language (English unless the customer writes Hindi/Hinglish).
 6. Be concise (max ~120 words), warm, specific. Quote RRN and exact times when relevant.
-7. End with ONE clear next step for the customer."""
+7. End with ONE clear next step for the customer.
+8. WRONG-RECIPIENT cases: use analyze_wrong_recipient's verdict and confidence.
+   Never call a possibly-wrong transfer "fraud". Express uncertainty when the
+   engine says UNCERTAIN; ask its clarifying questions. Never promise that a
+   completed transfer can be auto-reversed — recovery needs the beneficiary
+   bank or a dispute filing.
+9. NO-DEBIT cases: use check_retry_safety. Offer to help retry ONLY when it
+   says safe_to_retry true; if the original is pending/unknown, explain the
+   duplicate-risk and verify first. A no-debit failure is usually normal —
+   do not treat it as fraud.
+10. UNCERTAIN-STATUS cases: use verify_transaction_state; explain the
+    payer-view/receiver-view disagreement plainly.
+11. Disputes are filed through the SIMULATED NPCI-style gateway — say
+    "simulated dispute filed" and give the ticket; never claim a real bank
+    complaint was lodged."""
 
 
 # --------------------------------------------------------------------- tools
 class ToolBelt:
     """Deterministic backend tools Gemini may call. Each returns plain JSON."""
-    def __init__(self, services, db, memory):
+    def __init__(self, services, db, memory, complaints=None, scenario_engines=None):
         self.S = services
         self.db = db
         self.mem = memory
+        self.complaints = complaints
+        self.scen = scenario_engines
+
+    # ------------------------------------------------ scenario 1 & 3 & 4
+    def analyze_wrong_recipient(self, txn_id, intended_vpa=None):
+        return self.scen.wrong_recipient(int(txn_id), intended_vpa)
+
+    def check_retry_safety(self, txn_id):
+        return self.scen.retry_safety(int(txn_id))
+
+    def verify_transaction_state(self, txn_id):
+        return {"agreement": self.scen.state_agreement(int(txn_id)),
+                "timeline": self.S.stages(int(txn_id))}
+
+    def file_dispute(self, txn_id, category, description):
+        p = self.S.payment(int(txn_id))
+        rrn = self.db.execute("SELECT rrn FROM npci_switch_log WHERE txn_id=?",
+                              (int(txn_id),)).fetchone()
+        f = {"rrn": rrn["rrn"] if rrn else None,
+             "txn_date": p["initiated_at"][:10], "amount_paise": p["amount_paise"],
+             "payer_vpa": f"{p['user_id']}@paytm", "payee_vpa": p["beneficiary_vpa"],
+             "payer_bank": p["payer_bank"] or "HDFC Bank",
+             "payee_bank": "@" + p["beneficiary_vpa"].split("@")[-1],
+             "category": category, "description": description}
+        return self.complaints.submit(f, txn_id=txn_id, seed=int(txn_id))
+
+    def dispute_status(self, complaint_id):
+        r = self.complaints.status(complaint_id)
+        return r or {"error": "unknown complaint id"}
 
     def get_payment(self, txn_id):
         p = self.S.payment(int(txn_id))
@@ -124,6 +167,37 @@ TOOL_SPECS = [
      "description": "Memory layer: previous cases/conversations for this customer",
      "parameters": {"type": "object", "properties":
                     {"txn_id": {"type": "integer"}}, "required": ["txn_id"]}},
+    {"name": "analyze_wrong_recipient",
+     "description": "Contextual mistaken-transfer analysis: evidence, calibrated "
+                    "verdict (LIKELY_INTENDED..LIKELY_WRONG_RECIPIENT), confidence, "
+                    "clarifying questions. Pass intended_vpa if the customer said "
+                    "who they meant.",
+     "parameters": {"type": "object", "properties":
+                    {"txn_id": {"type": "integer"},
+                     "intended_vpa": {"type": "string"}}, "required": ["txn_id"]}},
+    {"name": "check_retry_safety",
+     "description": "No-debit case: whether retrying the payment is safe or "
+                    "risks a duplicate debit",
+     "parameters": {"type": "object", "properties":
+                    {"txn_id": {"type": "integer"}}, "required": ["txn_id"]}},
+    {"name": "verify_transaction_state",
+     "description": "Payer-view vs receiver-view agreement + full stage timeline "
+                    "(scenario: uncertain status)",
+     "parameters": {"type": "object", "properties":
+                    {"txn_id": {"type": "integer"}}, "required": ["txn_id"]}},
+    {"name": "file_dispute",
+     "description": "File the NPCI-style dispute (SIMULATED gateway; returns "
+                    "ticket + validation errors). category one of "
+                    "debited_not_credited|wrong_beneficiary|delayed_credit|status_unclear",
+     "parameters": {"type": "object", "properties":
+                    {"txn_id": {"type": "integer"}, "category": {"type": "string"},
+                     "description": {"type": "string"}},
+                    "required": ["txn_id", "category", "description"]}},
+    {"name": "dispute_status",
+     "description": "Track a filed dispute (ticket status + SLA)",
+     "parameters": {"type": "object", "properties":
+                    {"complaint_id": {"type": "string"}},
+                    "required": ["complaint_id"]}},
     {"name": "escalate_payment_issue",
      "description": "Record an escalation to the payments-ops queue",
      "parameters": {"type": "object", "properties":
@@ -185,7 +259,8 @@ def fallback_reply(txn_id, S, intent):
 
 # ----------------------------------------------------------------- the agent
 class SahayakAI:
-    def __init__(self, services, db, memory):
+    def __init__(self, services, db, memory, complaints=None,
+                 scenario_engines=None):
         self.S = services
         self.db = db
         self.mem = memory

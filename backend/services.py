@@ -32,6 +32,7 @@ class Services:
     def payment(self, txn_id):
         q = """
         SELECT t.*, u.name AS customer_name, u.mobile,
+               u.state, u.home_city, u.psp_bank, u.payer_bank,
                (SELECT resp_code FROM psp_gateway_log p WHERE p.txn_id=t.txn_id
                  ORDER BY psp_ref DESC LIMIT 1) AS psp_code,
                (SELECT forwarded FROM psp_gateway_log p WHERE p.txn_id=t.txn_id

@@ -728,6 +728,15 @@ function renderStatus(v) {
   }, { once: true });
   $("#viewDetail").onclick = () => renderDetail(v.txn_id);
   $("#doneBtn").onclick = refreshAndHome;
+
+  // AUTO-OPEN Sahayak on failure — the customer doesn't need to find the button
+  if (v.status !== "SUCCESS") {
+    setTimeout(() => {
+      if (document.querySelector(".status-panel")) {  // still on status screen
+        renderChat(v.txn_id);
+      }
+    }, 2000);
+  }
 }
 
 async function refreshAndHome() {

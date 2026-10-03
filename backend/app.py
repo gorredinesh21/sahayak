@@ -43,6 +43,8 @@ SVC = Services(DB_PATH)
 MEM = MemoryLayer(engine.db)
 COMPLAINTS = ComplaintService(engine.db, BUS)
 SCEN = ScenarioEngines(engine.db)
+from sla_scheduler import SLAScheduler
+SCHED = SLAScheduler(engine.db, SVC, COMPLAINTS, BUS)
 AI = SahayakAI(SVC, engine.db, MEM, complaints=COMPLAINTS,
                scenario_engines=SCEN)
 app = FastAPI(title="Paytm Demo — Sahayak")
@@ -339,6 +341,11 @@ SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
 SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 
 
+@app.get("/api/sla/timers/{txn_id}")
+def sla_timers(txn_id: int):
+    return {"timers": SCHED.timers_for(txn_id)}
+
+
 @app.post("/api/voice/stt")
 async def voice_stt(audio: UploadFile = File(...), language: str = "hi-IN"):
     """Speech-to-text proxy (Sarvam saarika)."""
@@ -589,6 +596,13 @@ def saas_agent_open(req: SaasOpenReq):
         (case_id, req.txn_id, p["user_id"],
          datetime.now().isoformat(timespec="seconds"), "OPEN"))
     opener, thinking = AI.opener(req.txn_id)
+    # PROACTIVE SLA TIMER: if SLA is active, arm it now
+    sla = SVC.sla(req.txn_id)
+    if sla.get("applicable") and sla.get("status") == "ACTIVE":
+        SCHED.arm(req.txn_id, case_id, sla["sla_expiry"])
+        thinking.append({"tool": "sla_timer_armed",
+                        "detail": f"auto-check scheduled for {sla['sla_expiry'][11:16]} "
+                                  f"({sla['remaining_human']} from now)"})
     engine.db.execute(
         "INSERT INTO support_messages (case_id, role, text, thinking, created_at) "
         "VALUES (?,?,?,?,?)",

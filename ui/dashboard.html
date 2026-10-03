@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAHAYAK — AI Payment Support & Resolution</title>
+<style>
+:root{--bg:#0B1220;--panel:#111B2E;--panel2:#0E1726;--line:#1E2B42;--ink:#E7EEF8;
+--mut:#8CA0BC;--cy:#00BAF2;--cy2:#0E8FDB;--ok:#2FA84F;--okbg:#0E2A1B;--bad:#E5484D;
+--badbg:#33141A;--warn:#E8A13C;--warnbg:#33260F;--vio:#7B4DFF;--viobg:#221A44;
+--mono:ui-monospace,'JetBrains Mono',Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',Inter,system-ui,sans-serif;height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:270px 1fr 380px;height:100vh}
+/* header */
+.top{position:fixed;top:0;left:0;right:0;height:54px;background:var(--panel);
+border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;
+padding:0 18px;z-index:20}
+.logo{font-weight:800;font-size:17px;letter-spacing:.06em}
+.logo b{color:var(--cy)}
+.sub{font-size:12px;color:var(--mut)}
+.chips{margin-left:auto;display:flex;gap:8px}
+.chip{font-size:11px;font-weight:700;padding:4px 11px;border-radius:999px;
+border:1px solid var(--line);color:var(--mut)}
+.chip.ok{color:#7FE3C4;border-color:#1D4A3A}
+.chip.warn{color:#FFD9A8;border-color:#54401C}
+.chip.vio{color:#C9B9FF;border-color:#413384}
+/* sidebar */
+.side{margin-top:54px;background:var(--panel2);border-right:1px solid var(--line);
+padding:16px 12px;overflow-y:auto}
+.side h4{font-size:11px;letter-spacing:.1em;color:var(--mut);margin:6px 8px 10px}
+.prof{background:var(--panel);border:1.5px solid var(--line);border-radius:12px;
+padding:12px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.prof:hover{border-color:var(--cy2)}
+.prof.on{border-color:var(--cy);box-shadow:0 0 0 3px rgba(0,186,242,.12)}
+.prof .tag{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
+.badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px}
+.badge.b-bad{background:var(--badbg);color:#FF9B9E}
+.badge.b-warn{background:var(--warnbg);color:#FFD9A8}
+.badge.b-ok{background:var(--okbg);color:#7FE3C4}
+.badge.b-vio{background:var(--viobg);color:#C9B9FF}
+.prof .nm{font-size:12px;color:var(--mut);margin-top:6px}
+.prof .meta{font-size:11px;color:var(--mut);margin-top:3px;display:flex;
+justify-content:space-between}
+/* main */
+.main{margin-top:54px;overflow-y:auto;padding:18px 20px 40px}
+.h2{font-size:19px;font-weight:800;margin-bottom:2px}
+.crumb{font-size:12px;color:var(--mut);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+padding:16px;margin-bottom:14px}
+.card h3{font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--mut);
+text-transform:uppercase;margin-bottom:12px}
+/* pipeline */
+.pipe{display:flex;flex-direction:column;gap:0}
+.pstep{display:flex;gap:12px;align-items:flex-start;position:relative;
+padding-bottom:18px}
+.pstep::before{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;
+background:var(--line)}
+.pstep:last-child::before{display:none}
+.pstep.done::before{background:var(--ok)}
+.pico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;z-index:1;
+background:var(--okbg);color:#7FE3C4;border:2px solid var(--ok)}
+.pstep.failed .pico{background:var(--badbg);color:#FF9B9E;border-color:var(--bad);
+box-shadow:0 0 0 4px rgba(229,72,77,.15)}
+.pstep.timeout .pico{background:var(--warnbg);color:#FFD9A8;border-color:var(--warn)}
+.pstep.waiting .pico{background:var(--warnbg);color:#FFD9A8;border-color:var(--warn);
+opacity:.8}
+.pstep.skip .pico{background:var(--panel2);color:var(--mut);border-color:var(--line)}
+.pbody{padding-top:4px}
+.pbody .pl{font-weight:700;font-size:13.5px}
+.pbody .pn{font-size:11.5px;color:var(--mut);margin-top:1px}
+.pstep.failed .pl{color:#FF9B9E}
+/* kv rows */
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.kv .k{font-size:11px;color:var(--mut);font-weight:700}
+.kv .v{font-size:13px;font-weight:700;font-family:var(--mono)}
+/* sla */
+.sla-big{display:flex;align-items:baseline;gap:10px}
+.sla-big .st{font-size:26px;font-weight:800}
+.sla-big .st.ACTIVE{color:#7FE3C4}.sla-big .st.EXPIRED{color:#FF9B9E}
+.bar{height:8px;background:var(--panel2);border-radius:6px;overflow:hidden;
+margin:12px 0 8px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#57C97F)}
+.bar.exp i{background:linear-gradient(90deg,var(--bad),#EF6A6E)}
+.srow{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);
+padding:3px 0}
+.srow b{color:var(--ink);font-family:var(--mono)}
+/* fraud */
+.score{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.dial{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;
+align-items:center;justify-content:center;font-weight:800;border:3px solid}
+.dial.CRITICAL{border-color:var(--bad);color:#FF9B9E}
+.dial.HIGH{border-color:#F0767A;color:#FFB3B5}
+.dial.MEDIUM{border-color:var(--warn);color:#FFD9A8}
+.dial.LOW{border-color:var(--ok);color:#7FE3C4}
+.dial .n{font-size:19px}.dial .c{font-size:8.5px;letter-spacing:.08em}
+.sig{display:flex;gap:8px;align-items:flex-start;padding:6px 0;
+border-bottom:1px dashed var(--line);font-size:12.5px}
+.sig:last-child{border:none}
+.sig .w{font-family:var(--mono);color:#FFD9A8;font-size:11px;flex-shrink:0}
+.sig .rid{font-family:var(--mono);color:var(--mut);font-size:10.5px}
+.note{font-size:11px;color:var(--mut);font-style:italic;margin-top:8px}
+.act{margin-top:10px;font-size:12.5px;background:var(--panel2);border-left:3px solid var(--warn);
+border-radius:0 8px 8px 0;padding:8px 12px}
+/* history table */
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);
+text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{font-size:12.5px;padding:7px 8px;border-bottom:1px solid var(--panel2)}
+.mono{font-family:var(--mono)}
+.pill{font-size:10px;font-weight:800;padding:2px 9px;border-radius:999px}
+.pill.S{background:var(--okbg);color:#7FE3C4}.pill.P{background:var(--warnbg);color:#FFD9A8}
+.pill.F{background:var(--badbg);color:#FF9B9E}
+/* chat */
+.chat{margin-top:54px;border-left:1px solid var(--line);background:var(--panel2);
+display:flex;flex-direction:column}
+.chat-head{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;
+gap:10px;align-items:center}
+.chat-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--vio),#5E8BFF);
+display:flex;align-items:center;justify-content:center;font-size:16px}
+.chat-head .cn{font-weight:800;font-size:14px}
+.chat-head .cs{font-size:11px;color:var(--mut)}
+.chat-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px}
+.msg{max-width:92%;padding:10px 13px;border-radius:13px;font-size:13px;line-height:1.55}
+.msg.a{background:var(--panel);border:1px solid var(--line);
+border-bottom-left-radius:4px;align-self:flex-start}
+.msg.u{background:var(--cy2);color:#fff;border-bottom-right-radius:4px;
+align-self:flex-end}
+.think{align-self:stretch;background:var(--panel);border:1px dashed #413384;
+border-radius:11px;padding:8px 12px;cursor:pointer}
+.think .th{font-size:11px;font-weight:800;color:#C9B9FF}
+.think .tl2{display:none;margin-top:8px;flex-direction:column;gap:6px}
+.think.open .tl2{display:flex}
+.tr{display:flex;gap:8px;font-size:11.5px;color:var(--mut)}
+.tr .tn{font-family:var(--mono);color:var(--cy);font-weight:700;flex-shrink:0}
+.chat-in{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+.chat-in input{flex:1;background:var(--panel);border:1px solid var(--line);
+border-radius:10px;color:var(--ink);padding:10px 13px;font-size:13px;outline:none}
+.chat-in input:focus{border-color:var(--cy2)}
+.chat-in button{background:linear-gradient(90deg,var(--vio),#5E8BFF);border:none;
+color:#fff;font-weight:800;border-radius:10px;padding:0 16px;cursor:pointer}
+.close-btn{background:none;border:1px solid var(--line);color:var(--mut);
+font-size:11px;border-radius:8px;padding:5px 10px;cursor:pointer;margin-left:auto}
+.typing{display:flex;gap:4px;padding:12px;background:var(--panel);
+border-radius:13px;align-self:flex-start}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--mut);
+animation:b 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes b{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.empty{margin:auto;text-align:center;color:var(--mut);font-size:13px;padding:40px 20px}
+button:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">SAHA<b>YAK</b></div>
+  <div class="sub">AI Payment Support &amp; Resolution — internal desk</div>
+  <div class="chips">
+    <span class="chip" id="chipAI">gemini: …</span>
+    <span class="chip vio" id="chipMem">memory: …</span>
+    <span class="chip ok">deterministic core: online</span>
+  </div>
+</div>
+<div class="app">
+  <div class="side"><h4>DEMO PROFILES</h4><div id="profiles"></div>
+    <h4 style="margin-top:14px">WORKSPACE</h4>
+    <div style="font-size:11px;color:var(--mut);padding:0 8px;line-height:1.7">
+      Customers · Payments ·<br>Investigations · Fraud · SLA</div>
+  </div>
+  <div class="main" id="main"><div class="empty">Select a profile to open its payment investigation.</div></div>
+  <div class="chat">
+    <div class="chat-head"><div class="chat-av">🤖</div>
+      <div><div class="cn">Sahayak</div><div class="cs" id="chatSub">AI support agent</div></div>
+      <button class="close-btn" id="closeCase">Close case → memory</button></div>
+    <div class="chat-body" id="chatBody">
+      <div class="empty">Open a payment and launch Sahayak.<br>It will already know the case.</div>
+    </div>
+    <div class="chat-in"><input id="chatInput" placeholder="Type as the customer…"
+      disabled><button id="chatSend" disabled>Send</button></div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+let PROFILES=[],cur=null,caseId=null;
+const fmt=p=>`₹${(p/100).toLocaleString('en-IN')}`;
+const ago=iso=>new Date(iso).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+
+async function loadStatus(){
+  try{const s=await (await fetch('/api/ai/status')).json();
+    $('#chipAI').textContent=`gemini: ${s.gemini_probe?.startsWith('OK')||s.gemini_probe==='OK'?'vertex live':s.gemini_probe||s.gemini}`;
+    $('#chipAI').className='chip '+(String(s.gemini_probe).includes('OK')?'ok':'warn');
+    $('#chipMem').textContent=`memory: ${s.memory}`;
+  }catch(e){$('#chipAI').textContent='gemini: unreachable';}
+}
+
+async function loadProfiles(){
+  PROFILES=(await (await fetch('/api/saas/profiles')).json()).items;
+  $('#profiles').innerHTML=PROFILES.map(p=>`
+    <div class="prof" data-t="${p.tag}">
+      <div class="tag">Profile ${p.tag} <span class="badge ${badge(p)}">${p.scenario}</span></div>
+      <div class="nm">${p.customer} · ${fmt(p.amount_paise)}</div>
+      <div class="meta"><span>${p.payment_status}</span><span>${p.sla_status==='EXPIRED'?'SLA expired':p.sla_status==='ACTIVE'?'SLA active':''}</span></div>
+    </div>`).join('');
+  document.querySelectorAll('.prof').forEach(el=>el.onclick=()=>openProfile(el.dataset.t));
+}
+const badge=p=>p.tag==='D'?'b-vio':p.sla_status==='EXPIRED'?'b-bad':p.failed_at?'b-warn':'b-ok';
+
+async function openProfile(tag){
+  cur=PROFILES.find(p=>p.tag===tag);
+  document.querySelectorAll('.prof').forEach(el=>el.classList.toggle('on',el.dataset.t===tag));
+  const d=await (await fetch(`/api/saas/payment/${cur.txn_id}`)).json();
+  renderMain(d);
+  resetChat();
+}
+function renderMain(d){
+  const p=d.payment,st=d.stages,sla=d.sla,fr=d.fraud;
+  const stageIcon={done:'✓',failed:'✕',timeout:'⏱',waiting:'⏳',skip:'—'};
+  const pct=sla.applicable?Math.max(0,Math.min(100,
+    100*(1-sla.remaining_seconds/(parseFloat(sla.sla_duration)*3600)))):0;
+  $('#main').innerHTML=`
+  <div class="h2">Payment investigation — ${p.customer_name}</div>
+  <div class="crumb">txn #${p.txn_id} · RRN <span class="mono">${d.rrn||'—'}</span> ·
+    to <span class="mono">${p.beneficiary_vpa}</span> · ${ago(p.initiated_at)}</div>
+  <div class="grid2">
+    <div>
+      <div class="card"><h3>Payment lifecycle — failed at: ${st.failed_at?
+        STAGE_LABEL(st.failed_at):'none'}</h3>
+        <div class="pipe">${st.stages.map((s,i)=>`
+          <div class="pstep ${s.status}">
+            <div class="pico">${stageIcon[s.status]||'—'}</div>
+            <div class="pbody"><div class="pl">${i+1}. ${s.label}</div>
+              <div class="pn">${s.note||''}${s.ts?' · '+ago(s.ts):''}</div></div>
+          </div>`).join('')}</div></div>
+      <div class="card"><h3>Customer &amp; payment</h3>
+        <div class="kv">
+          <div><div class="k">CUSTOMER</div><div class="v">${p.customer_name}</div></div>
+          <div><div class="k">AMOUNT</div><div class="v">${fmt(p.amount_paise)}</div></div>
+          <div><div class="k">STATUS</div><div class="v">${p.status}</div></div>
+          <div><div class="k">DEBITED</div><div class="v">${p.debit_ts?ago(p.debit_ts):'no'}</div></div>
+          <div><div class="k">REVERSAL</div><div class="v">${p.reversal_initiated_at?'initiated '+ago(p.reversal_initiated_at):'—'}</div></div>
+          <div><div class="k">APP MESSAGE</div><div class="v" style="font-family:inherit">${p.app_err_msg||'—'}</div></div>
+        </div></div>
+      <div class="card"><h3>Recent transactions</h3><table>
+        <tr><th>To</th><th>Amount</th><th>When</th><th>Status</th></tr>
+        ${d.history.map(h=>`<tr><td>${h.to_name}</td><td class="mono">${fmt(h.amount_paise)}</td>
+          <td>${ago(h.initiated_at)}</td><td><span class="pill ${h.status[0]}">${h.status}</span></td></tr>`).join('')}
+      </table></div>
+    </div>
+    <div>
+      <div class="card"><h3>SLA engine</h3>
+        ${sla.applicable?`
+        <div class="sla-big"><span class="st ${sla.status}">${sla.status}</span>
+          <span style="color:var(--mut);font-size:13px">${sla.class} · ${sla.sla_duration}</span></div>
+        <div class="bar ${sla.status==='EXPIRED'?'exp':''}"><i style="width:${sla.status==='EXPIRED'?100:pct}%"></i></div>
+        <div class="srow"><span>started</span><b>${ago(sla.sla_start)}</b></div>
+        <div class="srow"><span>expiry</span><b>${ago(sla.sla_expiry)}</b></div>
+        <div class="srow"><span>remaining</span><b>${sla.remaining_human}</b></div>`
+        :`<div class="note">${sla.reason}</div>`}</div>
+      <div class="card"><h3>Risk engine (deterministic)</h3>
+        <div class="score"><div class="dial ${fr.category}">
+          <div class="n">${fr.score}</div><div class="c">${fr.category}</div></div>
+          <div style="font-size:12px;color:var(--mut);line-height:1.5">
+            ${fr.triggered_rules.length} rule(s) triggered<br>
+            amount ${fr.features.amount_ratio}× 30-day avg<br>
+            velocity: ${fr.features.txns_last_hour}/hr</div></div>
+        ${fr.signals.map(s=>`<div class="sig"><span class="w">+${s.weight}</span>
+          <span>${s.description}<br><span class="rid">${s.rule}</span></span></div>`).join('')||
+          '<div class="note">no signals triggered</div>'}
+        <div class="act">▸ ${fr.recommended_action}</div>
+        <div class="note">${fr.note}</div></div>
+      ${d.support_cases.length?`<div class="card"><h3>Support cases</h3>
+        ${d.support_cases.map(c=>`<div class="srow"><span>${c.case_id} · ${c.intent||''}</span>
+          <b>${c.status}</b></div>`).join('')}</div>`:''}
+      <button style="width:100%;height:46px;border:none;border-radius:12px;cursor:pointer;
+        background:linear-gradient(90deg,#7B4DFF,#5E8BFF);color:#fff;font-weight:800;
+        font-size:14px" onclick="launch()">🤖 Launch Sahayak on this payment</button>
+    </div>
+  </div>`;
+}
+const STAGE_LABEL=s=>({initiated:'Payment Initiated',authentication:'Authentication',
+authorization:'Bank Authorization',gateway:'Gateway Processing',
+confirmation:'Payment Confirmation',settlement:'Settlement',credit:'Customer Credit'})[s]||s;
+
+/* ---------- chat ---------- */
+function resetChat(){caseId=null;$('#chatBody').innerHTML=
+  '<div class="empty">Open a payment and launch Sahayak.<br>It will already know the case.</div>';
+  $('#chatInput').disabled=$('#chatSend').disabled=true;
+  $('#chatSub').textContent='AI support agent';}
+window.launch=async function(){
+  const r=await(await fetch('/api/saas/agent/open',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({txn_id:cur.txn_id})})).json();
+  caseId=r.case_id;
+  $('#chatBody').innerHTML='';addMsg('a',r.opener);addThink(r.thinking);
+  $('#chatInput').disabled=$('#chatSend').disabled=false;
+  $('#chatSub').textContent=`case ${caseId} · memory: ${r.memory_mode}`;
+  $('#chatInput').focus();};
+function addMsg(role,text){const d=document.createElement('div');
+  d.className='msg '+role;d.textContent=text;$('#chatBody').appendChild(d);scroll()}
+function addThink(steps){if(!steps?.length)return;const d=document.createElement('div');
+  d.className='think';d.innerHTML=`<div class="th">🧠 Sahayak investigated ${steps.length} step(s) ▸</div>
+  <div class="tl2">${steps.map(s=>`<div class="tr"><span class="tn">${s.tool}</span>
+  <span>${s.detail}</span></div>`).join('')}</div>`;
+  d.onclick=()=>d.classList.toggle('open');
+  $('#chatBody').appendChild(d);scroll()}
+function scroll(){const b=$('#chatBody');b.scrollTop=b.scrollHeight}
+async function send(){const t=$('#chatInput').value.trim();if(!t||!caseId)return;
+  $('#chatInput').value='';addMsg('u',t);
+  const ty=document.createElement('div');ty.className='typing';ty.innerHTML='<i></i><i></i><i></i>';
+  $('#chatBody').appendChild(ty);scroll();$('#chatSend').disabled=true;
+  try{const r=await(await fetch('/api/saas/agent/message',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({case_id:caseId,text:t})})).json();
+    ty.remove();addThink(r.thinking);addMsg('a',r.reply);
+    $('#chatSub').textContent=`case ${caseId} · engine: ${r.engine}`;}
+  catch(e){ty.remove();addMsg('a','⚠ '+e.message);}
+  $('#chatSend').disabled=false;$('#chatInput').focus();}
+$('#chatSend').onclick=send;
+$('#chatInput').onkeydown=e=>e.key==='Enter'&&send();
+$('#closeCase').onclick=async()=>{if(!caseId)return;
+  const r=await(await fetch(`/api/saas/case/${caseId}/close`,{method:'POST'})).json();
+  addMsg('a',`Case closed and written to memory (${r.memory_mode}).`);};
+
+loadStatus();loadProfiles();
+</script>
+</body>
+</html>

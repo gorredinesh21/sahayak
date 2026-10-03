@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paytm Demo — Sahayak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/src/styles.css?v=9">
+<link rel="stylesheet" href="/src/styles.css?v=9">
+</head>
+<body>
+<div id="stage">
+  <div id="phone">
+    <div class="notch"></div>
+    <div id="statusbar">
+      <span id="clock">9:41 AM</span>
+      <span class="sb-right">
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="#fff"/><rect x="4.3" y="4" width="3" height="7" rx="1" fill="#fff"/><rect x="8.6" y="2" width="3" height="9" rx="1" fill="#fff"/><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#fff" opacity=".4"/></svg>
+        <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x=".5" y=".5" width="18" height="10" rx="2.5" stroke="#fff" opacity=".5"/><rect x="2" y="2" width="12" height="7" rx="1.5" fill="#fff"/><path d="M20 3.5v4c1-.2 1.6-1 1.6-2s-.6-1.8-1.6-2z" fill="#fff" opacity=".5"/></svg>
+      </span>
+    </div>
+    <div id="screen"></div>
+    <div id="devtab" title="Demo controls">⚡</div>
+  </div>
+</div>
+<div id="devdrawer" class="hidden"></div>
+<script type="module" src="/src/app.js?v=9"></script>
+<script>
+/* boot watchdog: if the module tag ever fails silently (IAB quirk),
+   import it dynamically — proven path — so the app always starts. */
+setTimeout(() => {
+  const scr = document.getElementById('screen');
+  if (scr && scr.children.length === 0) {
+    import('/src/app.js?v=9').catch(e => {
+      scr.innerHTML = '<div style="padding:80px 24px;color:#17212B">App failed to start: ' + e.message + '</div>';
+    });
+  }
+}, 2500);
+</script>
+</body>
+</html>

@@ -341,3 +341,43 @@ body{background:#0D1524;font-family:var(--font-body);color:var(--ink);
 .think-card.open .tl2{display:flex}
 .tl-row{display:flex;gap:9px;font-size:12px;align-items:flex-start;color:var(--ink-2)}
 .tl-row .tn2{font-family:var(--font-mono);font-weight:700;color:var(--navy);font-size:11.5px}
+
+/* ==================== VOICE CONVERSATION MODE ==================== */
+.voice-overlay{position:absolute;inset:0;z-index:100;background:linear-gradient(
+  160deg,#1a0a2e 0%,#0d1b3e 40%,#07203B 100%);display:none;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px 24px;gap:0}
+.voice-overlay.show{display:flex}
+.voice-close{position:absolute;top:18px;right:18px;width:44px;height:44px;
+  border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;
+  font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.voice-orb{width:160px;height:160px;border-radius:50%;position:relative;
+  display:flex;align-items:center;justify-content:center;margin-bottom:32px;
+  transition:transform .3s ease}
+.voice-orb .core{width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,#00BAF2,#7B4DFF);z-index:2;
+  display:flex;align-items:center;justify-content:center;font-size:32px}
+.voice-orb .ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(0,186,242,.3);
+  animation:voicering 2s ease-out infinite}
+.voice-orb .ring.r2{animation-delay:.5s;border-color:rgba(123,77,255,.2)}
+.voice-orb .ring.r3{animation-delay:1s;border-color:rgba(0,186,242,.15)}
+@keyframes voicering{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+.voice-orb.listening .core{background:linear-gradient(135deg,#00BAF2,#0E8FDB);
+  animation:orbpulse 1.2s ease-in-out infinite}
+.voice-orb.thinking .core{background:linear-gradient(135deg,#E8A13C,#F0B458);
+  animation:orbspin 2s linear infinite}
+.voice-orb.speaking .core{background:linear-gradient(135deg,#7B4DFF,#5E8BFF);
+  animation:orbpulse .8s ease-in-out infinite}
+@keyframes orbpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes orbspin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.voice-status{font-size:16px;font-weight:700;color:#8FE1FF;margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.08em}
+.voice-transcript{font-size:14px;color:#B9CFE4;max-width:300px;text-align:center;
+  min-height:60px;line-height:1.5;margin-bottom:24px;padding:0 12px}
+.voice-transcript .user{color:#00BAF2;font-weight:600}
+.voice-transcript .ai{color:#C9B9FF}
+.voice-hint{font-size:11px;color:#5B7185;margin-top:16px;text-align:center}
+.voice-wave{display:flex;gap:3px;align-items:center;height:30px;margin-bottom:20px}
+.voice-wave span{width:3px;border-radius:2px;background:#00BAF2;
+  animation:wv 1s ease-in-out infinite;transition:height .2s}
+.voice-wave span:nth-child(odd){background:#7B4DFF}
+@keyframes wv{0%,100%{height:6px}50%{height:20px}}

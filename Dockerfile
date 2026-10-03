@@ -1,7 +1,7 @@
 # Sahayak — full stack (backend + Paytm-clone app + dashboard + visualizer)
 FROM python:3.10-slim
 WORKDIR /app
-RUN pip install --no-cache-dir fastapi 'uvicorn[standard]' qrcode google-genai
+RUN pip install --no-cache-dir fastapi 'uvicorn[standard]' qrcode google-genai httpx python-multipart
 COPY backend ./backend
 COPY ui ./ui
 COPY sandbox ./sandbox

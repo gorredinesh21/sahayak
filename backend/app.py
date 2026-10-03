@@ -12,7 +12,7 @@ import secrets
 import sys
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -324,6 +324,76 @@ def dev_demo_cases():
         "SELECT txn_id, status, amount_paise, beneficiary_vpa FROM paytm_txn "
         "WHERE is_demo_case=1 ORDER BY txn_id").fetchall()
     return {"items": [dict(zip(r.keys(), r)) for r in rows]}
+
+
+def _detect_lang(text):
+    devanagari = sum(1 for c in text if chr(0x0900) <= c <= chr(0x097F))
+    return "hi-IN" if devanagari > len(text) * 0.3 else "en-IN"
+
+
+import httpx as _httpx
+import base64 as _b64
+
+SARVAM_KEY = os.environ.get("SARVAM_API_KEY", "")
+SARVAM_TTS_URL = "https://api.sarvam.ai/text-to-speech"
+SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
+
+
+@app.post("/api/voice/stt")
+async def voice_stt(audio: UploadFile = File(...), language: str = "hi-IN"):
+    """Speech-to-text proxy (Sarvam saarika)."""
+    if not SARVAM_KEY:
+        raise HTTPException(503, "SARVAM_API_KEY not configured")
+    content = await audio.read()
+    if not content:
+        raise HTTPException(400, "empty audio")
+    async with _httpx.AsyncClient(timeout=30) as client:
+        r = await client.post(
+            SARVAM_STT_URL,
+            headers={"Authorization": f"Bearer {SARVAM_KEY}"},
+            files={"file": ("audio.wav", content, "audio/wav")},
+            data={"model": "saarika:v2.5", "language_code": language})
+    if r.status_code != 200:
+        raise HTTPException(r.status_code, f"Sarvam STT: {r.text[:200]}")
+    return {"transcript": r.json().get("transcript", "")}
+
+
+class TTSReq(BaseModel):
+    text: str
+    voice: str = "priya"
+    language: str = "auto"
+    speed: float = 1.0
+
+
+@app.post("/api/voice/tts")
+async def voice_tts(req: TTSReq):
+    """Text-to-speech proxy (Sarvam bulbul:v3). Returns WAV bytes."""
+    if not SARVAM_KEY:
+        raise HTTPException(503, "SARVAM_API_KEY not configured")
+    if not req.text.strip():
+        raise HTTPException(400, "empty text")
+    lang = req.language if req.language != "auto" else _detect_lang(req.text)
+    async with _httpx.AsyncClient(timeout=30) as client:
+        r = await client.post(
+            SARVAM_TTS_URL,
+            headers={"Authorization": f"Bearer {SARVAM_KEY}",
+                     "Content-Type": "application/json"},
+            json={"text": req.text[:2400], "model": "bulbul:v3",
+                  "speaker": req.voice, "language_code": lang,
+                  "speech_rate": req.speed, "audio_format": "wav"})
+    if r.status_code != 200:
+        raise HTTPException(r.status_code, f"Sarvam TTS: {r.text[:200]}")
+    audios = r.json().get("audios", [])
+    if not audios:
+        raise HTTPException(500, "no audio in Sarvam response")
+    return Response(content=_b64.b64decode(audios[0]),
+                    media_type="audio/wav")
+
+
+@app.get("/api/voice/status")
+def voice_status():
+    return {"sarvam": "configured" if SARVAM_KEY else "not-configured",
+            "stt_model": "saarika:v2.5", "tts_model": "bulbul:v3"}
 
 
 # --------------------------------------------------------- contacts/search

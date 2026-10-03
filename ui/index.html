@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paytm Demo — Sahayak</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="/src/styles.css?v=19">
-<link rel="stylesheet" href="/src/styles.css?v=19">
+<link rel="stylesheet" href="/src/styles.css?v=20">
+<link rel="stylesheet" href="/src/styles.css?v=20">
 </head>
 <body>
 <div id="stage">
@@ -24,14 +24,14 @@
   </div>
 </div>
 <div id="devdrawer" class="hidden"></div>
-<script type="module" src="/src/app.js?v=19"></script>
+<script type="module" src="/src/app.js?v=20"></script>
 <script>
 /* boot watchdog: if the module tag ever fails silently (IAB quirk),
    import it dynamically — proven path — so the app always starts. */
 setTimeout(() => {
   const scr = document.getElementById('screen');
   if (scr && scr.children.length === 0) {
-    import('/src/app.js?v=19').catch(e => {
+    import('/src/app.js?v=20').catch(e => {
       scr.innerHTML = '<div style="padding:80px 24px;color:#17212B">App failed to start: ' + e.message + '</div>';
     });
   }

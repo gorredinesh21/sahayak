@@ -300,7 +300,8 @@ class SahayakAI:
         self.S = services
         self.db = db
         self.mem = memory
-        self.tools = ToolBelt(services, db, memory)
+        self.tools = ToolBelt(services, db, memory, complaints=complaints,
+                          scenario_engines=scenario_engines)
         self.client = None
         self.model = os.environ.get("SAHAYAK_GEMINI_MODEL", "gemini-2.5-flash")
         try:
